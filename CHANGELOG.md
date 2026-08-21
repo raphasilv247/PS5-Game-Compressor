@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.0.4 - 2026-08-21
+
+Compared `release1.0.4` against `v1.0.3`.
+
+Full release notes: [RELEASE_NOTES_1.0.4.md](RELEASE_NOTES_1.0.4.md).
+
+### Added
+
+- Added German, French, Arabic, Italian, Spanish, and Simplified Chinese UI
+  translations with automatic system-language selection and a persistent
+  manual language selector.
+- Added right-to-left layout support for Arabic, including bidirectional text
+  isolation and responsive layout adjustments.
+- Added localized Game Compressor launcher titles for every supported language.
+- Added ShadowMountPlus executable discovery under `/data/ps5_autoloader` in
+  addition to the existing Payload Manager locations.
+
+### Changed
+
+- Improved firmware 4.51 browser compatibility with physical-edge CSS
+  fallbacks for older WebKit behavior.
+- Improved relaunch handling when a previous Game Compressor instance leaves
+  port 5910 open but no longer answers the local HTTP handoff.
+- Added more detailed web-server socket, bind, listen, and client-thread
+  diagnostics.
+
+### Fixed
+
+- Fixed `Build AMPR Index` for directly detected game folders so enqueue and
+  worker resolution use the same APR-EMU probe result, including its source
+  path and SHA-256.
+- Fixed APR-EMU module permissions for affected deployment and loading paths.
+- Fixed the compression wizard so `Delete after verified` keeps its own
+  free-space and deletion explanation when switching source-preservation
+  options.
+
 ## 1.0.3 - 2026-06-20
 
 Compared PR #22 (`release1.0.3`) against `v1.0.2`.

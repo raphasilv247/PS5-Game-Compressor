@@ -3961,6 +3961,13 @@ find_game_for_operation_source_path(const gc_operation_t *op, gc_game_t *out,
       }
     }
   }
+  if(!candidate.ampr_present &&
+     candidate.source_kind == GC_SOURCE_FOLDER &&
+     ampr_folder_target_probe(candidate.source_path, candidate.ampr_path,
+                              sizeof(candidate.ampr_path),
+                              candidate.ampr_sha256)) {
+    candidate.ampr_present = 1;
+  }
   candidate.can_stream_delete =
       candidate.source_kind == GC_SOURCE_FOLDER ||
       candidate.source_kind == GC_SOURCE_COMPRESSED;
@@ -10659,8 +10666,9 @@ enqueue_build_ampr_index_action(const http_request_t *req) {
   if(stat(source_path_arg, &st) != 0) {
     return serve_error(req, 400, "AMPR index source is unavailable");
   }
-  source_kind =
-      source_kind_from_name(source_kind_name_from_path(source_path_arg));
+  source_kind = S_ISDIR(st.st_mode)
+      ? GC_SOURCE_FOLDER
+      : source_kind_from_name(source_kind_name_from_path(source_path_arg));
   if(source_kind != GC_SOURCE_FOLDER &&
      source_kind != GC_SOURCE_IMAGE &&
      source_kind != GC_SOURCE_COMPRESSED) {
@@ -10670,7 +10678,8 @@ enqueue_build_ampr_index_action(const http_request_t *req) {
   memset(&game, 0, sizeof(game));
   if(lookup_game_by_source_path(source_path_arg, &game) == 0) {
     ampr_present = game.ampr_present;
-  } else if(source_kind == GC_SOURCE_FOLDER) {
+  }
+  if(!ampr_present && source_kind == GC_SOURCE_FOLDER) {
     ampr_present =
         ampr_folder_target_probe(source_path_arg, NULL, 0, NULL);
   }

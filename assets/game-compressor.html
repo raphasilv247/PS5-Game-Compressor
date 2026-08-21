@@ -5,6 +5,61 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Game Compressor</title>
+  <link rel="stylesheet" href="/game-compressor-rtl.css">
+  <script src="/game-compressor-i18n.js"></script>
+  <script src="/game-compressor-locale-de.js"></script>
+  <script src="/game-compressor-locale-fr.js"></script>
+  <script src="/game-compressor-locale-ar.js"></script>
+  <script src="/game-compressor-locale-it.js"></script>
+  <script src="/game-compressor-locale-es.js"></script>
+  <script src="/game-compressor-locale-zh-hans.js"></script>
+  <script>
+    (function () {
+      var match = document.cookie.match(/(?:^|;\s*)game_compressor_language=([^;]*)/);
+      var preference = '';
+      try {
+        preference = match ? decodeURIComponent(match[1]) : '';
+      } catch (err) {
+        preference = '';
+      }
+
+      function normalizeLocale(value) {
+        var normalized = String(value || '').toLowerCase().replace(/_/g, '-');
+        var language = normalized.split('-')[0];
+        if (language === 'de' || language === 'fr' || language === 'ar' ||
+          language === 'it' || language === 'es') return language;
+        if (language === 'zh') return 'zh-hans';
+        return 'en';
+      }
+
+      function isSupportedPreference(value) {
+        var normalized = String(value || '').toLowerCase().replace(/_/g, '-');
+        var language = normalized.split('-')[0];
+        return language === 'en' || language === 'de' || language === 'fr' ||
+          language === 'ar' || language === 'it' || language === 'es' ||
+          language === 'zh';
+      }
+
+      var systemRequested = '';
+      if (window.navigator) {
+        systemRequested = window.navigator.languages && window.navigator.languages[0]
+          ? window.navigator.languages[0]
+          : (window.navigator.language || window.navigator.userLanguage || '');
+      }
+      var systemLocale = normalizeLocale(systemRequested);
+      var useSystem = !preference || preference === 'system' ||
+        !isSupportedPreference(preference);
+      var languagePreference = useSystem ? 'system' : normalizeLocale(preference);
+      var locale = useSystem ? systemLocale : languagePreference;
+      window.__gcSystemLocale = systemLocale;
+      window.__gcLanguagePreference = languagePreference;
+      window.__gcInitialLocale = locale;
+      if (window.GameCompressorI18n) {
+        window.GameCompressorI18n.setLocale(locale);
+        document.title = window.GameCompressorI18n.t('app.documentTitle');
+      }
+    })();
+  </script>
   <script>
     (function () {
       var match = document.cookie.match(/(?:^|;\s*)game_compressor_theme=([^;]*)/);
@@ -112,9 +167,9 @@
       background: none;
     }
 
+    button:focus,
     button:focus-visible {
-      outline: 3px solid rgba(31, 111, 255, .28);
-      outline-offset: 3px;
+      outline: none;
     }
 
     .app {
@@ -807,7 +862,7 @@
       box-shadow: 0 8px 20px rgba(37, 51, 81, .08);
     }
 
-    .free-space-label span {
+    .free-space-label .free-space-value {
       margin-left: 6px;
       color: var(--text);
     }
@@ -856,8 +911,8 @@
 
     .info-launcher {
       position: fixed;
-      right: 25px;
-      bottom: 25px;
+      right: 36px;
+      bottom: 30px;
       z-index: 7;
     }
 
@@ -1054,6 +1109,10 @@
 
     .menu-layer {
       position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       inset: 0;
       z-index: 20;
       pointer-events: none;
@@ -1690,6 +1749,10 @@
 
     .modal-backdrop {
       position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       inset: 0;
       display: grid;
       place-items: center;
@@ -1779,6 +1842,172 @@
       font-weight: 680;
     }
 
+    #language-top[aria-expanded="true"] {
+      color: var(--accent);
+      border-color: rgba(23, 105, 255, .28);
+      background: var(--surface-solid);
+    }
+
+    .language-menu-layer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      inset: 0;
+      z-index: 34;
+      pointer-events: none;
+    }
+
+    .language-menu-layer.hidden {
+      display: none;
+    }
+
+    .language-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: min(280px, calc(100vw - 24px));
+      max-height: calc(100vh - 24px);
+      overflow: auto;
+      padding: 8px;
+      border: 1px solid rgba(37, 51, 81, .18);
+      border-radius: 18px;
+      background: var(--surface-solid);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, .70),
+        0 24px 64px rgba(37, 51, 81, .18);
+      pointer-events: auto;
+      animation: menu-in .16s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .language-option {
+      width: 100%;
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 12px;
+      border-radius: 13px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      transition: background .16s ease, color .16s ease, transform .16s ease;
+    }
+
+    .language-option:hover {
+      color: var(--accent);
+      background: var(--menu-hover-bg);
+      transform: translateX(1px);
+    }
+
+    .language-option[aria-checked="true"] {
+      color: var(--text);
+      background: var(--selected-bg);
+    }
+
+    .language-option-leading {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .language-flag {
+      width: 27px;
+      height: 18px;
+      flex: 0 0 27px;
+      display: block;
+      object-fit: cover;
+      border-radius: 3px;
+      background: #fff;
+      box-shadow: 0 0 0 1px rgba(17, 24, 39, .16);
+    }
+
+    .language-system-image {
+      object-fit: contain;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .language-option-copy {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .language-option-name {
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 720;
+    }
+
+    .language-option-detail {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+      font-weight: 600;
+    }
+
+    .language-check {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 20px;
+      display: grid;
+      place-items: center;
+      opacity: 0;
+    }
+
+    .language-option[aria-checked="true"] .language-check {
+      opacity: 1;
+    }
+
+    .language-check svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    html:not([lang^="en"]) .chip,
+    html:not([lang^="en"]) .row-tag {
+      text-transform: none;
+    }
+
+    html:not([lang^="en"]) .game-row>.chip {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    html:not([lang^="en"]) .small-action {
+      height: auto;
+      min-height: 40px;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      line-height: 1.25;
+      white-space: normal;
+    }
+
+    html:not([lang^="en"]) .modal-actions,
+    html:not([lang^="en"]) .progress-heading {
+      flex-wrap: wrap;
+    }
+
+    html:not([lang^="en"]) .progress-label,
+    html:not([lang^="en"]) .progress-direction,
+    html:not([lang^="en"]) .format-row .history-title,
+    html:not([lang^="en"]) .usb-row .history-title,
+    html:not([lang^="en"]) .usb-picker-option .history-title,
+    html:not([lang^="en"]) .usb-picker-trigger .history-title {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      overflow-wrap: break-word;
+    }
+
     .about-image-icon {
       display: inline-block;
       width: 18px;
@@ -1826,6 +2055,12 @@
       background: rgba(31, 34, 34, .96);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04),
         0 14px 34px rgba(0, 0, 0, .24);
+    }
+
+    body.theme-dark .language-menu {
+      border-color: rgba(245, 245, 240, .14);
+      box-shadow: 0 0 0 1px rgba(245, 245, 240, .06),
+        0 24px 64px rgba(0, 0, 0, .54);
     }
 
     body.theme-dark .about-main {
@@ -2071,12 +2306,6 @@
     .usb-picker-trigger:hover,
     .usb-picker-option:hover {
       border-color: var(--accent);
-    }
-
-    .usb-picker-trigger:focus-visible,
-    .usb-picker-option:focus-visible {
-      border-color: rgba(23, 105, 255, .5);
-      box-shadow: 0 0 0 3px rgba(23, 105, 255, .12);
     }
 
     .usb-picker-menu {
@@ -2400,8 +2629,8 @@
       }
 
       .info-launcher {
-        right: 14px;
-        bottom: 14px;
+        right: 20px;
+        bottom: 20px;
       }
 
       .detail {
@@ -2493,6 +2722,33 @@
       }
 
     }
+
+    @media (max-width: 520px) {
+      .topbar,
+      .topbar-actions,
+      .theme-tools {
+        gap: 5px;
+      }
+
+      .free-space-label {
+        justify-content: center;
+        padding: 0 7px;
+      }
+
+      .free-space-label .free-space-name {
+        display: none;
+      }
+
+      .free-space-label .free-space-value {
+        margin-left: 0;
+      }
+
+      .language-option {
+        min-height: 42px;
+        padding: 7px 10px;
+        border-radius: 11px;
+      }
+    }
   </style>
 </head>
 
@@ -2508,7 +2764,7 @@
       <div class="sidebar-head">
         <h1 class="sidebar-brand"><span id="sidebar-app-name">Game Compressor</span><span class="sidebar-version"
             id="sidebar-version"></span></h1>
-        <div class="sidebar-meta" id="count-label">Scanning games</div>
+        <div class="sidebar-meta" id="count-label" data-i18n="loading.scanningGames">Scanning games</div>
       </div>
       <div class="game-list" id="game-list">
         <div class="loading-state is-list" role="status" aria-live="polite">
@@ -2516,8 +2772,8 @@
             <span class="loading-dots"><span></span><span></span><span></span></span>
           </div>
           <div>
-            <div class="loading-title">Scanning games</div>
-            <div class="loading-subtitle">Looking for installed and compressed game entries.</div>
+            <div class="loading-title" data-i18n="loading.scanningGames">Scanning games</div>
+            <div class="loading-subtitle" data-i18n="loading.gamesList">Looking for installed and compressed game entries.</div>
           </div>
         </div>
       </div>
@@ -2526,22 +2782,31 @@
     <main class="content">
       <div class="topbar">
         <div class="theme-tools">
-          <div class="theme-toggle" role="group" aria-label="Color mode">
+          <div class="theme-toggle" role="group" aria-label="Color mode"
+            data-i18n-aria-label="accessibility.colorMode">
             <button class="theme-option" id="theme-dark" type="button" data-theme="dark"
-              title="Dark mode" aria-label="Dark mode"></button>
+              title="Dark mode" aria-label="Dark mode" data-i18n-title="accessibility.darkMode"
+              data-i18n-aria-label="accessibility.darkMode"></button>
             <button class="theme-option" id="theme-light" type="button" data-theme="light"
-              title="Light mode" aria-label="Light mode"></button>
+              title="Light mode" aria-label="Light mode" data-i18n-title="accessibility.lightMode"
+              data-i18n-aria-label="accessibility.lightMode"></button>
           </div>
         </div>
         <div class="topbar-actions">
-          <div class="free-space-label" id="free-space-label">Free Space <span>--</span></div>
-          <button class="icon-btn" id="history-top" title="History" aria-label="History"></button>
+          <div class="free-space-label" id="free-space-label"><span class="free-space-name"
+            data-i18n="header.freeSpace">Free Space</span><span class="free-space-value">--</span></div>
+          <button class="icon-btn" id="language-top" type="button" title="Language" aria-label="Language"
+            aria-haspopup="menu" aria-expanded="false" aria-controls="language-menu"
+            data-i18n-title="settings.language" data-i18n-aria-label="settings.language"></button>
+          <button class="icon-btn" id="history-top" title="History" aria-label="History"
+            data-i18n-title="accessibility.history" data-i18n-aria-label="accessibility.history"></button>
           <button class="icon-btn is-danger" id="terminate-top" title="Terminate Game Compressor"
-            aria-label="Terminate Game Compressor"></button>
+            aria-label="Terminate Game Compressor" data-i18n-title="accessibility.terminateApp"
+            data-i18n-aria-label="accessibility.terminateApp"></button>
         </div>
         <div class="terminate-reminder hidden" id="terminate-reminder" role="status" aria-live="polite">
-          <strong>Done processing.</strong>
-          <span>Before playing, terminate Game Compressor to avoid minor game performance effects.</span>
+          <strong data-i18n="terminate.reminderTitle">Done processing.</strong>
+          <span data-i18n="terminate.reminderText">Before playing, terminate Game Compressor to avoid minor game performance effects.</span>
         </div>
       </div>
       <section class="detail" id="detail">
@@ -2550,8 +2815,8 @@
             <span class="loading-dots"><span></span><span></span><span></span></span>
           </div>
           <div>
-            <div class="loading-title">Scanning games</div>
-            <div class="loading-subtitle">This can take a moment on PS5 storage.</div>
+            <div class="loading-title" data-i18n="loading.scanningGames">Scanning games</div>
+            <div class="loading-subtitle" data-i18n="loading.gamesDetail">This can take a moment on PS5 storage.</div>
           </div>
         </div>
       </section>
@@ -2560,13 +2825,88 @@
 
   <div class="menu-layer" id="menu-layer"></div>
 
-  <button class="icon-btn info-launcher" id="info-top" title="About" aria-label="About Game Compressor"></button>
+  <div class="language-menu-layer hidden" id="language-menu-layer">
+    <div class="language-menu" id="language-menu" role="menu" aria-labelledby="language-top">
+      <button class="language-option" type="button" role="menuitemradio" aria-checked="false"
+        data-language-value="system">
+        <span class="language-option-leading">
+          <img class="language-flag language-system-image" src="/language-system.svg" alt="" aria-hidden="true"
+            draggable="false">
+          <span class="language-option-copy">
+            <span class="language-option-name" data-i18n="settings.systemLanguage">System language</span>
+            <span class="language-option-detail" id="system-language-name" dir="auto">English</span>
+          </span>
+        </span>
+        <span class="language-check" aria-hidden="true"></span>
+      </button>
+      <button class="language-option" type="button" role="menuitemradio" aria-checked="false"
+        data-language-value="en">
+        <span class="language-option-leading">
+          <img class="language-flag" src="/flag-gb.svg" alt="" aria-hidden="true" draggable="false">
+          <span class="language-option-name" lang="en" dir="auto">English</span>
+        </span>
+        <span class="language-check" aria-hidden="true"></span>
+      </button>
+      <button class="language-option" type="button" role="menuitemradio" aria-checked="false"
+        data-language-value="de">
+        <span class="language-option-leading">
+          <img class="language-flag" src="/flag-de.svg" alt="" aria-hidden="true" draggable="false">
+          <span class="language-option-name" lang="de" dir="auto">Deutsch</span>
+        </span>
+        <span class="language-check" aria-hidden="true"></span>
+      </button>
+      <button class="language-option" type="button" role="menuitemradio" aria-checked="false"
+        data-language-value="fr">
+        <span class="language-option-leading">
+          <img class="language-flag" src="/flag-fr.svg" alt="" aria-hidden="true" draggable="false">
+          <span class="language-option-name" lang="fr" dir="auto">Français</span>
+        </span>
+        <span class="language-check" aria-hidden="true"></span>
+      </button>
+      <button class="language-option" type="button" role="menuitemradio" aria-checked="false"
+        data-language-value="ar">
+        <span class="language-option-leading">
+          <img class="language-flag" src="/flag-ps.svg" alt="" aria-hidden="true" draggable="false">
+          <span class="language-option-name" lang="ar" dir="auto">العربية</span>
+        </span>
+        <span class="language-check" aria-hidden="true"></span>
+      </button>
+      <button class="language-option" type="button" role="menuitemradio" aria-checked="false"
+        data-language-value="it">
+        <span class="language-option-leading">
+          <img class="language-flag" src="/flag-it.svg" alt="" aria-hidden="true" draggable="false">
+          <span class="language-option-name" lang="it" dir="auto">Italiano</span>
+        </span>
+        <span class="language-check" aria-hidden="true"></span>
+      </button>
+      <button class="language-option" type="button" role="menuitemradio" aria-checked="false"
+        data-language-value="es">
+        <span class="language-option-leading">
+          <img class="language-flag" src="/flag-es.svg" alt="" aria-hidden="true" draggable="false">
+          <span class="language-option-name" lang="es" dir="auto">Español</span>
+        </span>
+        <span class="language-check" aria-hidden="true"></span>
+      </button>
+      <button class="language-option" type="button" role="menuitemradio" aria-checked="false"
+        data-language-value="zh-hans">
+        <span class="language-option-leading">
+          <img class="language-flag" src="/flag-cn.svg" alt="" aria-hidden="true" draggable="false">
+          <span class="language-option-name" lang="zh-Hans" dir="auto">简体中文</span>
+        </span>
+        <span class="language-check" aria-hidden="true"></span>
+      </button>
+    </div>
+  </div>
+
+  <button class="icon-btn info-launcher" id="info-top" title="About" aria-label="About Game Compressor"
+    data-i18n-title="accessibility.about" data-i18n-aria-label="accessibility.aboutApp"></button>
 
   <div class="modal-backdrop hidden" id="history-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="history-title">
       <div class="modal-head">
-        <div class="modal-title" id="history-title">History</div>
-        <button class="icon-btn" id="history-close" aria-label="Close"></button>
+        <div class="modal-title" id="history-title" data-i18n="history.title">History</div>
+        <button class="icon-btn" id="history-close" aria-label="Close"
+          data-i18n-aria-label="common.close"></button>
       </div>
       <div class="modal-body" id="history-body"></div>
     </div>
@@ -2576,15 +2916,18 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="info-title">
       <div class="modal-head">
         <div class="modal-title" id="info-title">Game Compressor</div>
-        <button class="icon-btn" id="info-close" aria-label="Close"></button>
+        <button class="icon-btn" id="info-close" aria-label="Close"
+          data-i18n-aria-label="common.close"></button>
       </div>
       <div class="modal-body">
         <div class="about-copy">
-          <div class="about-main">Built by Juma Sayeh</div>
-          <div class="about-sub">Tested by Osama Abualia</div>
-          <div class="about-made">Made with <span class="about-image-icon about-heart" role="img"
-              aria-label="love"></span> in <span class="about-image-icon about-palestine" role="img"
-              aria-label="Palestine"></span></div>
+          <div class="about-main" data-i18n="about.builtBy">Built by Juma Sayeh</div>
+          <div class="about-sub" data-i18n="about.testedBy">Tested by Osama Abualia</div>
+          <div class="about-made"><span data-i18n="about.madeWith">Made with</span> <span
+              class="about-image-icon about-heart" role="img" aria-label="love"
+              data-i18n-aria-label="accessibility.love"></span> <span data-i18n="about.inPalestine">in</span> <span
+              class="about-image-icon about-palestine" role="img" aria-label="Palestine"
+              data-i18n-aria-label="accessibility.palestine"></span></div>
         </div>
       </div>
     </div>
@@ -2593,8 +2936,9 @@
   <div class="modal-backdrop hidden" id="usb-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="usb-title">
       <div class="modal-head">
-        <div class="modal-title" id="usb-title">Move to...</div>
-        <button class="icon-btn" id="usb-close" aria-label="Close"></button>
+        <div class="modal-title" id="usb-title" data-i18n="operation.action.moveTo">Move to...</div>
+        <button class="icon-btn" id="usb-close" aria-label="Close"
+          data-i18n-aria-label="common.close"></button>
       </div>
       <div class="modal-body" id="usb-body"></div>
     </div>
@@ -2603,18 +2947,22 @@
   <div class="modal-backdrop hidden" id="ampr-version-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ampr-version-title">
       <div class="modal-head">
-        <div class="modal-title" id="ampr-version-title">APR-EMU Version</div>
-        <button class="icon-btn" id="ampr-version-close" aria-label="Close"></button>
+        <div class="modal-title" id="ampr-version-title" data-i18n="ampr.versionTitle">APR-EMU Version</div>
+        <button class="icon-btn" id="ampr-version-close" aria-label="Close"
+          data-i18n-aria-label="common.close"></button>
       </div>
       <div class="modal-body">
-        <div class="format-section-title">Available Versions</div>
+        <div class="format-section-title" data-i18n="ampr.availableVersions">Available Versions</div>
         <div class="ampr-version-list" id="ampr-version-list"></div>
         <div class="history-meta" id="ampr-version-status"></div>
         <div class="modal-actions">
           <input type="file" id="ampr-custom-file" accept=".sprx,.prx,application/octet-stream">
-          <button class="small-action" type="button" id="ampr-custom-upload">Upload Custom File</button>
-          <button class="small-action" type="button" id="ampr-version-cancel">Cancel</button>
-          <button class="small-action is-primary" type="button" id="ampr-version-apply">Apply Version</button>
+          <button class="small-action" type="button" id="ampr-custom-upload"
+            data-i18n="ampr.uploadCustom">Upload Custom File</button>
+          <button class="small-action" type="button" id="ampr-version-cancel"
+            data-i18n="common.cancel">Cancel</button>
+          <button class="small-action is-primary" type="button" id="ampr-version-apply"
+            data-i18n="common.applyVersion">Apply Version</button>
         </div>
       </div>
     </div>
@@ -2623,90 +2971,93 @@
   <div class="modal-backdrop hidden" id="format-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="format-title">
       <div class="modal-head">
-        <div class="modal-title" id="format-title">Compression Format</div>
-        <button class="icon-btn" id="format-close" aria-label="Close"></button>
+        <div class="modal-title" id="format-title" data-i18n="compress.dialogTitle">Compression Format</div>
+        <button class="icon-btn" id="format-close" aria-label="Close"
+          data-i18n-aria-label="common.close"></button>
       </div>
       <div class="modal-body">
-        <div class="format-section-title" id="format-output-section">Output</div>
+        <div class="format-section-title" id="format-output-section" data-i18n="common.output">Output</div>
         <div class="format-output-note" id="format-compress-output">
           <div>
-            <div class="history-title">Compressed archive (.ffpfsc)</div>
-            <div class="history-meta" id="format-compress-output-name">&lt;TITLE_ID&gt;.ffpfsc</div>
+            <div class="history-title" data-i18n="compress.archive">Compressed archive (.ffpfsc)</div>
+            <div class="history-meta ltr-token" id="format-compress-output-name">&lt;TITLE_ID&gt;.ffpfsc</div>
           </div>
-          <span class="chip selected">Output</span>
+          <span class="chip selected" data-i18n="common.output">Output</span>
         </div>
         <div class="format-switch-note" id="format-make-image-hint">
-          Need a direct .exfat or .ffpfs file?
-          <button class="format-link" type="button" id="format-switch-make-image">Make Image instead</button>
+          <span data-i18n="compress.makeImageHint">Need a direct .exfat or .ffpfs file?</span>
+          <button class="format-link" type="button" id="format-switch-make-image"
+            data-i18n="compress.makeImageInstead">Make Image instead</button>
         </div>
-        <div class="format-section-title" id="format-inner-section">Inner image format</div>
+        <div class="format-section-title" id="format-inner-section" data-i18n="compress.innerImageFormat">Inner image format</div>
         <div class="format-grid" id="format-grid">
           <button class="format-row is-default-choice" type="button" data-compress-format="exfat">
             <div>
               <div class="history-title" id="format-exfat-title">exFAT</div>
-              <div class="history-meta" id="format-exfat-name">&lt;TITLE_ID&gt;.exfat</div>
+              <div class="history-meta ltr-token" id="format-exfat-name">&lt;TITLE_ID&gt;.exfat</div>
             </div>
-            <span class="chip">Select</span>
+            <span class="chip" data-i18n="common.select">Select</span>
           </button>
           <button class="format-row" type="button" data-compress-format="pfs">
             <div>
-              <div class="history-title" id="format-pfs-title">PFS Experimental</div>
-              <div class="history-meta" id="format-pfs-name">Experimental - pfs_image.dat</div>
+              <div class="history-title" id="format-pfs-title" data-i18n="compress.pfsExperimental">PFS Experimental</div>
+              <div class="history-meta" id="format-pfs-name" data-i18n="compress.pfsExperimentalFile">Experimental - pfs_image.dat</div>
             </div>
-            <span class="chip">Select</span>
+            <span class="chip" data-i18n="common.select">Select</span>
           </button>
         </div>
-        <div class="format-section-title">Destination</div>
+        <div class="format-section-title" data-i18n="common.destination">Destination</div>
         <div class="format-grid">
           <button class="format-row is-default-choice" type="button" data-compress-destination="keep">
             <div>
-              <div class="history-title" id="format-destination-keep-title">Compress in place</div>
-              <div class="history-meta" id="format-destination-keep">Write next to the current game</div>
+              <div class="history-title" id="format-destination-keep-title" data-i18n="compress.inPlace">Compress in place</div>
+              <div class="history-meta" id="format-destination-keep" data-i18n="compress.writeCurrent">Write next to the current game</div>
             </div>
-            <span class="chip">Select</span>
+            <span class="chip" data-i18n="common.select">Select</span>
           </button>
           <button class="format-row" type="button" data-compress-destination="internal">
             <div>
-              <div class="history-title" id="format-destination-internal-title">Internal SSD</div>
-              <div class="history-meta" id="format-destination-internal">Write compressed file to /data/homebrew</div>
+              <div class="history-title" id="format-destination-internal-title" data-i18n="storage.internalSsd">Internal SSD</div>
+              <div class="history-meta" id="format-destination-internal" data-i18n="compress.writeInternal">Write compressed file to /data/homebrew</div>
             </div>
-            <span class="chip">Select</span>
+            <span class="chip" data-i18n="common.select">Select</span>
           </button>
           <button class="format-row" type="button" data-compress-destination="usb">
             <div>
-              <div class="history-title" id="format-destination-usb-title">External Storage</div>
-              <div class="history-meta" id="format-destination-usb">Write compressed file to the USB target below</div>
+              <div class="history-title" id="format-destination-usb-title" data-i18n="storage.externalStorage">External Storage</div>
+              <div class="history-meta" id="format-destination-usb" data-i18n="compress.writeUsb">Write compressed file to the USB target below</div>
             </div>
-            <span class="chip">Select</span>
+            <span class="chip" data-i18n="common.select">Select</span>
           </button>
         </div>
         <div class="compress-usb-panel hidden" id="compress-usb-panel">
           <div class="usb-picker" id="compress-usb-picker"></div>
           <div class="compress-usb-meta" id="compress-usb-meta"></div>
         </div>
-        <div class="format-section-title" id="compress-source-title">Original Handling</div>
+        <div class="format-section-title" id="compress-source-title" data-i18n="compress.originalHandling">Original Handling</div>
         <div class="format-grid is-three-up" id="compress-source-grid">
           <button class="format-row" type="button" data-compress-handling="keep">
             <div>
-              <div class="history-title">Keep original</div>
-              <div class="history-meta">Original remains untouched</div>
+              <div class="history-title" data-i18n="compress.keepOriginal">Keep original</div>
+              <div class="history-meta" data-i18n="compress.originalUntouched">Original remains untouched</div>
             </div>
           </button>
           <button class="format-row is-default-choice" type="button" data-compress-handling="after">
             <div>
-              <div class="history-title">Delete after verified</div>
-              <div class="history-meta" id="format-safe-space">Requires full-size free space</div>
+              <div class="history-title" data-i18n="compress.deleteVerified">Delete after verified</div>
+              <div class="history-meta" id="format-safe-space" data-i18n="compress.requiresFullSize">Requires full-size free space</div>
             </div>
           </button>
           <button class="format-row" type="button" data-compress-handling="stream">
             <div>
-              <div class="history-title">Destructive</div>
-              <div class="history-meta" id="format-stream-space">Requires 1 GB free space</div>
+              <div class="history-title" data-i18n="compress.destructive">Destructive</div>
+              <div class="history-meta" id="format-stream-space" data-i18n="compress.requiresOneGb">Requires 1 GB free space</div>
             </div>
           </button>
         </div>
         <div class="modal-actions">
-          <button class="small-action is-primary" type="button" id="format-start">Compress</button>
+          <button class="small-action is-primary" type="button" id="format-start"
+            data-i18n="operation.action.compress">Compress</button>
         </div>
       </div>
     </div>
@@ -2715,74 +3066,76 @@
   <div class="modal-backdrop hidden" id="uncompress-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="uncompress-title">
       <div class="modal-head">
-        <div class="modal-title" id="uncompress-title">Uncompress</div>
-        <button class="icon-btn" id="uncompress-close" aria-label="Close"></button>
+        <div class="modal-title" id="uncompress-title" data-i18n="uncompress.dialogTitle">Uncompress</div>
+        <button class="icon-btn" id="uncompress-close" aria-label="Close"
+          data-i18n-aria-label="common.close"></button>
       </div>
       <div class="modal-body">
-        <div class="format-section-title">Output</div>
+        <div class="format-section-title" data-i18n="common.output">Output</div>
         <div class="format-grid">
           <button class="format-row is-default-choice" type="button" data-uncompress-mode="image">
             <div>
-              <div class="history-title" id="uncompress-image-title">Image</div>
-              <div class="history-meta" id="uncompress-image-name">Detecting image type</div>
+              <div class="history-title" id="uncompress-image-title" data-i18n="common.image">Image</div>
+              <div class="history-meta" id="uncompress-image-name" data-i18n="uncompress.detectingImage">Detecting image type</div>
             </div>
-            <span class="chip">Select</span>
+            <span class="chip" data-i18n="common.select">Select</span>
           </button>
           <button class="format-row" type="button" data-uncompress-mode="files">
             <div>
-              <div class="history-title">Files</div>
-              <div class="history-meta" id="uncompress-files-name">App folder</div>
+              <div class="history-title" data-i18n="common.files">Files</div>
+              <div class="history-meta" id="uncompress-files-name" data-i18n="uncompress.appFolder">App folder</div>
             </div>
-            <span class="chip">Select</span>
+            <span class="chip" data-i18n="common.select">Select</span>
           </button>
         </div>
-        <div class="format-section-title">Destination</div>
+        <div class="format-section-title" data-i18n="common.destination">Destination</div>
         <div class="format-grid">
           <button class="format-row is-default-choice" type="button" data-uncompress-destination="inplace">
             <div>
-              <div class="history-title">In place</div>
-              <div class="history-meta" id="uncompress-inplace-meta">Write next to the compressed image</div>
+              <div class="history-title" data-i18n="uncompress.inPlace">In place</div>
+              <div class="history-meta" id="uncompress-inplace-meta" data-i18n="uncompress.writeCompressed">Write next to the compressed image</div>
             </div>
-            <span class="chip">Select</span>
+            <span class="chip" data-i18n="common.select">Select</span>
           </button>
           <button class="format-row" type="button" data-uncompress-destination="internal" id="uncompress-internal-row">
             <div>
-              <div class="history-title">Internal SSD</div>
-              <div class="history-meta">Write to /data/homebrew</div>
+              <div class="history-title" data-i18n="storage.internalSsd">Internal SSD</div>
+              <div class="history-meta" data-i18n="uncompress.writeInternal">Write to /data/homebrew</div>
             </div>
-            <span class="chip">Select</span>
+            <span class="chip" data-i18n="common.select">Select</span>
           </button>
           <button class="format-row" type="button" data-uncompress-destination="usb" id="uncompress-usb-row">
             <div>
-              <div class="history-title">External Storage</div>
-              <div class="history-meta">Write to the USB target below</div>
+              <div class="history-title" data-i18n="storage.externalStorage">External Storage</div>
+              <div class="history-meta" data-i18n="uncompress.writeUsb">Write to the USB target below</div>
             </div>
-            <span class="chip">Select</span>
+            <span class="chip" data-i18n="common.select">Select</span>
           </button>
         </div>
         <div class="compress-usb-panel hidden" id="uncompress-usb-panel">
           <div class="usb-picker" id="uncompress-usb-picker"></div>
           <div class="compress-usb-meta" id="uncompress-usb-meta"></div>
         </div>
-        <div class="format-section-title" id="uncompress-source-title">Original source</div>
+        <div class="format-section-title" id="uncompress-source-title" data-i18n="uncompress.originalSource">Original source</div>
         <div class="format-grid" id="uncompress-policy-grid">
           <button class="format-row" type="button" data-uncompress-policy="keep">
             <div>
-              <div class="history-title">Keep both</div>
-              <div class="history-meta">Leave the compressed image after output is written</div>
+              <div class="history-title" data-i18n="uncompress.keepBoth">Keep both</div>
+              <div class="history-meta" data-i18n="uncompress.keepCompressed">Leave the compressed image after output is written</div>
             </div>
-            <span class="chip">Select</span>
+            <span class="chip" data-i18n="common.select">Select</span>
           </button>
           <button class="format-row" type="button" data-uncompress-policy="after">
             <div>
-              <div class="history-title">Delete after completion</div>
-              <div class="history-meta">Remove the compressed image after output is ready</div>
+              <div class="history-title" data-i18n="uncompress.deleteAfter">Delete after completion</div>
+              <div class="history-meta" data-i18n="uncompress.removeCompressed">Remove the compressed image after output is ready</div>
             </div>
-            <span class="chip">Select</span>
+            <span class="chip" data-i18n="common.select">Select</span>
           </button>
         </div>
         <div class="modal-actions">
-          <button class="small-action is-primary" type="button" id="uncompress-start">Uncompress</button>
+          <button class="small-action is-primary" type="button" id="uncompress-start"
+            data-i18n="operation.action.uncompress">Uncompress</button>
         </div>
       </div>
     </div>
@@ -2791,19 +3144,21 @@
   <div class="modal-backdrop hidden" id="delete-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title">
       <div class="modal-head">
-        <div class="modal-title" id="delete-title">Delete Game Data</div>
-        <button class="icon-btn" id="delete-close" aria-label="Close"></button>
+        <div class="modal-title" id="delete-title" data-i18n="delete.dialogTitle">Delete Game Data</div>
+        <button class="icon-btn" id="delete-close" aria-label="Close"
+          data-i18n-aria-label="common.close"></button>
       </div>
       <div class="modal-body">
         <div class="delete-warning">
-          <div class="history-title" id="delete-game-name">Game data</div>
-          <div class="history-meta" id="delete-warning-text">This permanently deletes the selected game data from
+          <div class="history-title auto-token" id="delete-game-name" dir="auto" data-i18n="delete.gameData">Game data</div>
+          <div class="history-meta" id="delete-warning-text" data-i18n="delete.warning">This permanently deletes the selected game data from
             storage. This cannot be undone.</div>
-          <div class="history-meta" id="delete-game-path"></div>
+          <div class="history-meta ltr-token" id="delete-game-path"></div>
         </div>
         <div class="modal-actions">
-          <button class="small-action" type="button" id="delete-cancel">Cancel</button>
-          <button class="small-action is-danger" type="button" id="delete-confirm">Delete Game Data</button>
+          <button class="small-action" type="button" id="delete-cancel" data-i18n="common.cancel">Cancel</button>
+          <button class="small-action is-danger" type="button" id="delete-confirm"
+            data-i18n="operation.action.deleteGameData">Delete Game Data</button>
         </div>
       </div>
     </div>
@@ -2814,7 +3169,20 @@
   </div>
 
   <script>
+    const i18n = window.GameCompressorI18n;
+    const t = (key, params) => i18n ? i18n.t(key, params) : key;
     const THEME_COOKIE = 'game_compressor_theme';
+    const LANGUAGE_COOKIE = 'game_compressor_language';
+    const SYSTEM_LANGUAGE_PREFERENCE = 'system';
+    const UI_LANGUAGE_NAMES = {
+      en: 'English',
+      de: 'Deutsch',
+      fr: 'Français',
+      ar: 'العربية',
+      it: 'Italiano',
+      es: 'Español',
+      'zh-hans': '简体中文'
+    };
     const SELECTED_GAME_COOKIE = 'game_compressor_selected_title';
     const PFS_BLOCK_SIZE = 64 * 1024;
     const SPEED_SAMPLE_WINDOW_MS = 8 * 1000;
@@ -2827,7 +3195,7 @@
       gamesLoaded: false,
       gamesError: '',
       terminated: false,
-      appName: 'Game Compressor',
+      appName: t('app.name'),
       appVersion: '',
       history: [],
       usb: [],
@@ -2882,6 +3250,7 @@
       amprPickerLoading: false,
       amprPickerBusy: false,
       amprPickerBusyText: '',
+      amprPickerBusyTextKey: '',
       amprPickerError: '',
       notice: null,
       noticedHistory: false,
@@ -2909,6 +3278,7 @@
     let measureDotsTimer = 0;
     let measureDotsStep = 0;
     let pendingFinishedOperationId = '';
+    let uiLanguagePreference = window.__gcLanguagePreference || SYSTEM_LANGUAGE_PREFERENCE;
     const remindedFinishedOperationIds = new Set();
 
     const $ = (id) => document.getElementById(id);
@@ -2934,6 +3304,155 @@
       document.cookie = encodeURIComponent(name) + '=' + encodeURIComponent(value) +
         '; Max-Age=' + maxAge + '; Path=/; SameSite=Lax';
     }
+
+    function deleteCookie(name) {
+      document.cookie = encodeURIComponent(name) + '=; Max-Age=0; Path=/; SameSite=Lax';
+    }
+
+    function normalizeUiLocale(value) {
+      const normalized = String(value || '').toLowerCase().replace(/_/g, '-');
+      const language = normalized.split('-')[0];
+      if (language === 'de' || language === 'fr' || language === 'ar' ||
+        language === 'it' || language === 'es') return language;
+      if (language === 'zh') return 'zh-hans';
+      return 'en';
+    }
+
+    function systemUiLocale() {
+      const requested = window.navigator && window.navigator.languages && window.navigator.languages[0]
+        ? window.navigator.languages[0]
+        : (window.navigator && (window.navigator.language || window.navigator.userLanguage)) || '';
+      return normalizeUiLocale(requested);
+    }
+
+    function uiLanguageName(locale) {
+      const normalized = normalizeUiLocale(locale);
+      return UI_LANGUAGE_NAMES[normalized] || UI_LANGUAGE_NAMES.en;
+    }
+
+    function languageMenuIsOpen() {
+      const layer = $('language-menu-layer');
+      return !!layer && !layer.classList.contains('hidden');
+    }
+
+    function positionLanguageMenu() {
+      if (!languageMenuIsOpen()) return;
+      const trigger = $('language-top');
+      const menu = $('language-menu');
+      if (!trigger || !menu) return;
+      menu.style.left = '0px';
+      menu.style.top = '0px';
+      menu.style.maxHeight = '';
+      const triggerRect = trigger.getBoundingClientRect();
+      const menuRect = menu.getBoundingClientRect();
+      const margin = 12;
+      const gap = 8;
+      const rtl = document.documentElement.dir === 'rtl';
+      let left = rtl ? triggerRect.left : triggerRect.right - menuRect.width;
+      left = Math.max(margin, Math.min(left, window.innerWidth - menuRect.width - margin));
+      const belowTop = triggerRect.bottom + gap;
+      const belowSpace = Math.max(0, window.innerHeight - margin - belowTop);
+      const aboveSpace = Math.max(0, triggerRect.top - gap - margin);
+      const openBelow = menuRect.height <= belowSpace || belowSpace >= aboveSpace;
+      const availableHeight = openBelow ? belowSpace : aboveSpace;
+      menu.style.maxHeight = Math.max(0, Math.floor(availableHeight)) + 'px';
+      const fittedMenuRect = menu.getBoundingClientRect();
+      let top = openBelow ? belowTop : triggerRect.top - fittedMenuRect.height - gap;
+      top = Math.max(margin, Math.min(top, window.innerHeight - fittedMenuRect.height - margin));
+      menu.style.left = Math.round(left) + 'px';
+      menu.style.top = Math.round(top) + 'px';
+    }
+
+    function syncLanguageControl() {
+      const trigger = $('language-top');
+      const systemName = $('system-language-name');
+      const currentLocale = normalizeUiLocale(i18n ? i18n.getLocale() : systemUiLocale());
+      const currentName = uiLanguageName(currentLocale);
+      const systemLocale = systemUiLocale();
+      if (systemName) systemName.textContent = uiLanguageName(systemLocale);
+      document.querySelectorAll('[data-language-value]').forEach((option) => {
+        const preference = option.getAttribute('data-language-value') || '';
+        option.setAttribute('aria-checked', preference === uiLanguagePreference ? 'true' : 'false');
+      });
+      if (trigger) {
+        const label = t('settings.language') + ': ' + currentName;
+        trigger.title = label;
+        trigger.setAttribute('aria-label', label);
+      }
+    }
+
+    function closeLanguageMenu(restoreFocus) {
+      const layer = $('language-menu-layer');
+      const trigger = $('language-top');
+      if (layer) layer.classList.add('hidden');
+      if (trigger) {
+        trigger.setAttribute('aria-expanded', 'false');
+        if (restoreFocus) trigger.focus();
+      }
+    }
+
+    function openLanguageMenu() {
+      const layer = $('language-menu-layer');
+      const trigger = $('language-top');
+      if (!layer || !trigger) return;
+      closeSecondaryMenu();
+      hideTerminateReminder();
+      layer.classList.remove('hidden');
+      trigger.setAttribute('aria-expanded', 'true');
+      syncLanguageControl();
+      positionLanguageMenu();
+      const selected = layer.querySelector('.language-option[aria-checked="true"]');
+      if (selected) selected.focus();
+    }
+
+    function toggleLanguageMenu() {
+      if (languageMenuIsOpen()) closeLanguageMenu(false);
+      else openLanguageMenu();
+    }
+
+    function refreshLocalizedUi() {
+      if (!document.body) return;
+      if (i18n) i18n.applyToDom(document);
+      document.title = t('app.documentTitle');
+      state.appName = t('app.name');
+      renderAppChrome();
+      render(true);
+      if (state.amprPickerGame) renderAmprVersionModal();
+      if (state.compressGame) updateCompressModalSelection();
+      if (state.uncompressGame) updateUncompressModalSelection();
+      if (state.deleteGame) updateDeleteModal();
+      if (state.moveGame) renderUsbList();
+      if (state.notice) {
+        const operation = state.history.find((item) => opKey(item) === state.notice.key);
+        if (operation) {
+          state.notice.title = failureNoticeTitle(operation);
+          state.notice.text = failureNoticeText(operation);
+        }
+        renderUiNotice();
+      }
+      syncLanguageControl();
+      if (state.secondaryMenuFor) positionSecondaryMenu();
+      if (languageMenuIsOpen()) positionLanguageMenu();
+    }
+
+    function setUiLocale(preference, remember) {
+      const useSystem = preference === SYSTEM_LANGUAGE_PREFERENCE;
+      uiLanguagePreference = useSystem
+        ? SYSTEM_LANGUAGE_PREFERENCE
+        : normalizeUiLocale(preference);
+      const normalized = useSystem ? systemUiLocale() : uiLanguagePreference;
+      window.__gcLanguagePreference = uiLanguagePreference;
+      window.__gcSystemLocale = systemUiLocale();
+      if (remember) {
+        if (useSystem) deleteCookie(LANGUAGE_COOKIE);
+        else writeCookie(LANGUAGE_COOKIE, uiLanguagePreference, 365);
+      }
+      closeLanguageMenu(false);
+      if (i18n) i18n.setLocale(normalized);
+      else refreshLocalizedUi();
+    }
+
+    if (i18n) i18n.onLocaleChange(refreshLocalizedUi);
 
     function gameInstanceId(g) {
       if (!g) return '';
@@ -2975,6 +3494,8 @@
         timer: '<path d="M9 2h6"/><path d="M12 6v2"/><circle cx="12" cy="14" r="8"/><path d="M12 10v4l3 2"/>',
         copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
         refresh: '<path d="M21 12a9 9 0 0 1-15 6.7"/><path d="M3 12a9 9 0 0 1 15-6.7"/><path d="M18 3v5h-5"/><path d="M6 21v-5h5"/>',
+        language: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20"/><path d="M12 2a15.3 15.3 0 0 0 0 20"/>',
+        check: '<path d="m5 12 4 4L19 6"/>',
         sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
         moon: '<path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5 7 7 0 1 0 20.5 14.5Z"/>',
         power: '<path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/>',
@@ -3062,7 +3583,7 @@
     }
 
     function renderAppChrome() {
-      const name = String(state.appName || 'Game Compressor').trim() || 'Game Compressor';
+      const name = t('app.name');
       const version = appVersionText();
       const sidebarName = $('sidebar-app-name');
       const sidebarVersion = $('sidebar-version');
@@ -3075,10 +3596,10 @@
     async function loadAppStatus() {
       try {
         const data = await api('/api/status');
-        state.appName = String(data.name || state.appName || 'Game Compressor').trim() || 'Game Compressor';
+        state.appName = t('app.name');
         state.appVersion = cleanAppVersion(data.version);
       } catch (err) {
-        state.appName = state.appName || 'Game Compressor';
+        state.appName = t('app.name');
       }
       renderAppChrome();
     }
@@ -3134,7 +3655,7 @@
         applyTheme(saved);
       } catch (err) {
         applyTheme(previous);
-        alert(formatByteText(err.message || 'Could not save display mode'));
+        alert(formatByteText(err.message || t('theme.saveFailed')));
       } finally {
         state.themeSaving = false;
       }
@@ -3380,10 +3901,10 @@
 
     async function fetchAmprManifestEntries(options) {
       const res = await fetch(AMPR_MANIFEST_URL, { cache: 'no-store' });
-      if (!res.ok) throw new Error('APR-EMU manifest fetch failed');
+      if (!res.ok) throw new Error(t('ampr.error.manifestFetch'));
       const manifest = await res.json();
       const list = amprManifestEntryList(manifest);
-      if (!list.length) throw new Error('APR-EMU manifest did not include libSceAmpr.sprx');
+      if (!list.length) throw new Error(t('ampr.error.manifestMissing'));
       if (options && options.includeSizes) await enrichAmprEntrySizes(list);
       return list;
     }
@@ -3395,7 +3916,7 @@
 
     async function cacheAmprEntry(entry, options) {
       const res = await fetch(entry.url, { cache: 'no-store' });
-      if (!res.ok) throw new Error('APR-EMU binary download failed');
+      if (!res.ok) throw new Error(t('ampr.error.download'));
       const bytes = await res.arrayBuffer();
       let url = '/api/gc/ampr/upload?version=' + encodeURIComponent(entry.version) +
         '&sourceUrl=' + encodeURIComponent(entry.url) +
@@ -3426,7 +3947,7 @@
         state.amprLatestError = '';
         return true;
       } catch (err) {
-        state.amprLatestError = err.message || 'APR-EMU update check failed';
+        state.amprLatestError = err.message || t('ampr.error.updateCheck');
         return false;
       }
     }
@@ -3463,18 +3984,18 @@
     }
 
     function showPs5CustomAmprUploadMessage() {
-      const message = 'Upload custom libSceAmpr from your computer. Not supported on PS5 browser.';
+      const message = t('ampr.customPs5Unsupported');
       const status = $('ampr-version-status');
       if (status) status.textContent = message;
       alert(message);
     }
 
     async function cacheCustomAmprFile(file) {
-      if (!file || !file.size) throw new Error('Custom APR-EMU file is empty');
+      if (!file || !file.size) throw new Error(t('ampr.error.customEmpty'));
       const bytes = await file.arrayBuffer();
       const sha256 = await sha256Hex(bytes);
       if (!sha256HexLooksValid(sha256)) {
-        throw new Error('Custom APR-EMU SHA-256 could not be computed');
+        throw new Error(t('ampr.error.customHash'));
       }
       const version = amprCustomVersionForSha(sha256);
       const url = '/api/gc/ampr/upload?version=' + encodeURIComponent(version) +
@@ -3507,12 +4028,12 @@
           g = selectedGame() || g;
         }
         if (!g.amprLatestVersion || !g.amprLatestSha256) {
-          throw new Error(state.amprLatestError || 'APR-EMU latest cache is unavailable');
+          throw new Error(state.amprLatestError || t('ampr.error.latestUnavailable'));
         }
         await enqueueAmprUpdate(g, g.amprLatestVersion, g.amprLatestSha256,
           'latest');
       } catch (err) {
-        alert(formatByteText(err.message || 'APR-EMU update failed'));
+        alert(formatByteText(err.message || t('ampr.error.update')));
       } finally {
         state.amprBusy = false;
         refreshPrimaryArea(selectedGame());
@@ -3530,7 +4051,7 @@
         startPollBurst(6000);
         await refreshAll();
       } catch (err) {
-        alert(formatByteText(err.message || 'Original APR-EMU restore failed'));
+        alert(formatByteText(err.message || t('ampr.error.restore')));
       } finally {
         state.amprBusy = false;
         refreshPrimaryArea(selectedGame());
@@ -3563,7 +4084,7 @@
           }));
         });
       } catch (err) {
-        manifestError = err.message || 'APR-EMU manifest fetch failed';
+        manifestError = err.message || t('ampr.error.manifestFetch');
       }
       try {
         const cached = await api('/api/gc/ampr/versions');
@@ -3619,37 +4140,44 @@
       const close = $('ampr-version-close');
       const custom = $('ampr-custom-upload');
       if (!list || !status || !apply) return;
+      if (g) {
+        $('ampr-version-title').textContent = t('ampr.versionTitleGame', {
+          game: isolateAuto(g.name || g.titleId)
+        });
+      }
       if (state.amprPickerLoading) {
-        list.innerHTML = '<div class="empty">Loading APR-EMU versions</div>';
+        list.innerHTML = '<div class="empty">' + escapeHtml(t('ampr.loadingVersions')) + '</div>';
       } else if (state.amprPickerError) {
         list.innerHTML = '<div class="empty">' + escapeHtml(state.amprPickerError) + '</div>';
       } else if (!state.amprPickerVersions.length) {
-        list.innerHTML = '<div class="empty">No APR-EMU versions cached or available</div>';
+        list.innerHTML = '<div class="empty">' + escapeHtml(t('ampr.noVersions')) + '</div>';
       } else {
         list.innerHTML = state.amprPickerVersions.map((entry) => {
           const selected = entry.version === state.amprPickerSelected;
           const current = amprEntryIsCurrent(g, entry);
           const chips = [];
-          if (current) chips.push('Current');
-          if (entry.isLatest) chips.push('Latest');
-          chips.push(entry.cached ? 'Cached' : 'Download');
+          if (current) chips.push(t('common.current'));
+          if (entry.isLatest) chips.push(t('common.latest'));
+          chips.push(entry.cached ? t('common.cached') : t('common.download'));
           const sizeText = amprSafeSize(entry.size)
-            ? 'Size ' + shortSize(entry.size)
-            : 'Size after download';
+            ? t('ampr.size', { size: isolateLtr(shortSize(entry.size)) })
+            : t('ampr.sizeAfterDownload');
           const meta = [
             sizeText,
-            entry.sha256 ? 'SHA ' + entry.sha256.slice(0, 12) : 'SHA after download',
-            entry.cached ? 'stored on PS5' : 'downloads before applying'
+            entry.sha256
+              ? t('ampr.sha', { sha: isolateLtr(entry.sha256.slice(0, 12)) })
+              : t('ampr.shaAfterDownload'),
+            entry.cached ? t('ampr.storedOnPs5') : t('ampr.downloadsBeforeApplying')
           ].join(' - ');
           return '<button class="format-row' +
             (selected ? ' is-selected' : '') +
             '" type="button" data-ampr-version="' + escapeHtml(entry.version) + '">' +
             '<div>' +
-            '<div class="history-title">APR v' + escapeHtml(entry.version) + '</div>' +
+            '<div class="history-title">' + escapeHtml(t('status.aprVersion', { version: isolateLtr(entry.version) })) + '</div>' +
             '<div class="history-meta">' + escapeHtml(meta) + '</div>' +
             '</div>' +
             '<span class="chip ' + (selected ? 'selected' : (current ? 'ok' : (entry.isLatest ? 'ampr' : ''))) + '">' +
-            escapeHtml(selected ? 'Selected' : chips[0]) + '</span>' +
+            escapeHtml(selected ? t('common.selected') : chips[0]) + '</span>' +
             '</button>';
         }).join('');
       }
@@ -3658,25 +4186,27 @@
       apply.disabled = state.amprPickerLoading || state.amprPickerBusy ||
         !selectedEntry || selectedCurrent || jobIsBusy();
       apply.textContent = state.amprPickerBusy
-        ? 'Applying...'
-        : (selectedCurrent ? 'Installed' : 'Apply Version');
+        ? t('ampr.applying')
+        : (selectedCurrent ? t('common.installed') : t('common.applyVersion'));
       if (custom) {
         custom.disabled = state.amprPickerLoading || state.amprPickerBusy ||
           !g || jobIsBusy();
-        custom.textContent = state.amprPickerBusy ? 'Working...' : 'Upload Custom File';
+        custom.textContent = state.amprPickerBusy ? t('common.working') : t('ampr.uploadCustom');
       }
       if (cancel) cancel.disabled = state.amprPickerBusy;
       if (close) close.disabled = state.amprPickerBusy;
       if (state.amprPickerBusy) {
-        status.textContent = state.amprPickerBusyText || 'Preparing APR-EMU';
+        status.textContent = state.amprPickerBusyTextKey
+          ? t(state.amprPickerBusyTextKey)
+          : (state.amprPickerBusyText || t('ampr.preparing'));
       } else if (state.amprPickerError) {
         status.textContent = '';
       } else if (selectedEntry) {
         status.textContent = selectedCurrent
-          ? 'Selected version is already installed.'
+          ? t('ampr.selectedInstalled')
           : (selectedEntry.cached
-            ? 'Selected version is cached and ready to apply.'
-            : 'Selected version will be downloaded, cached, then applied.');
+            ? t('ampr.selectedCached')
+            : t('ampr.selectedDownload'));
       } else {
         status.textContent = '';
       }
@@ -3697,8 +4227,8 @@
       state.amprPickerLoading = true;
       state.amprPickerBusy = false;
       state.amprPickerBusyText = '';
+      state.amprPickerBusyTextKey = '';
       state.amprPickerError = '';
-      $('ampr-version-title').textContent = 'APR-EMU Version - ' + (g.name || g.titleId);
       renderAmprVersionModal();
       showModal('ampr-version-modal');
       try {
@@ -3713,7 +4243,7 @@
         state.amprPickerError = '';
       } catch (err) {
         state.amprPickerVersions = [];
-        state.amprPickerError = err.message || 'APR-EMU version list failed';
+        state.amprPickerError = err.message || t('ampr.error.versionList');
       } finally {
         state.amprPickerLoading = false;
         renderAmprVersionModal();
@@ -3728,6 +4258,7 @@
       state.amprPickerSelected = '';
       state.amprPickerLoading = false;
       state.amprPickerBusyText = '';
+      state.amprPickerBusyTextKey = '';
       state.amprPickerError = '';
     }
 
@@ -3736,7 +4267,8 @@
       if (!g || !file || state.amprPickerBusy || jobIsBusy()) return;
       state.amprPickerBusy = true;
       state.amprBusy = true;
-      state.amprPickerBusyText = 'Hashing and uploading custom APR-EMU file';
+      state.amprPickerBusyText = '';
+      state.amprPickerBusyTextKey = 'ampr.hashingUpload';
       state.amprPickerError = '';
       renderAmprVersionModal();
       refreshPrimaryArea(g);
@@ -3748,7 +4280,7 @@
         ];
         state.amprPickerSelected = entry.version;
         if (amprEntryIsCurrent(g, entry)) return;
-        state.amprPickerBusyText = 'Applying custom APR-EMU file';
+        state.amprPickerBusyTextKey = 'ampr.applyingCustom';
         renderAmprVersionModal();
         hideModal('ampr-version-modal');
         await enqueueAmprUpdate(g, entry.version, entry.sha256, 'custom');
@@ -3756,12 +4288,13 @@
         state.amprPickerVersions = [];
         state.amprPickerSelected = '';
       } catch (err) {
-        state.amprPickerError = err.message || 'Custom APR-EMU upload failed';
+        state.amprPickerError = err.message || t('ampr.error.customUpload');
         alert(formatByteText(state.amprPickerError));
       } finally {
         state.amprPickerBusy = false;
         state.amprBusy = false;
         state.amprPickerBusyText = '';
+        state.amprPickerBusyTextKey = '';
         renderAmprVersionModal();
         refreshPrimaryArea(selectedGame());
       }
@@ -3774,32 +4307,34 @@
       if (amprEntryIsCurrent(g, entry)) return;
       state.amprPickerBusy = true;
       state.amprBusy = true;
-      state.amprPickerBusyText = entry.cached
-        ? 'Applying cached APR-EMU version'
-        : 'Downloading and preparing APR-EMU';
+      state.amprPickerBusyText = '';
+      state.amprPickerBusyTextKey = entry.cached
+        ? 'ampr.applyingCached'
+        : 'ampr.downloadingPreparing';
       renderAmprVersionModal();
       refreshPrimaryArea(g);
       try {
         if (!entry.cached || !entry.sha256) {
-          if (!entry.url) throw new Error('Selected APR-EMU version has no download URL');
+          if (!entry.url) throw new Error(t('ampr.error.noDownloadUrl'));
           entry = await cacheAmprEntry(entry, { setLatest: !!entry.isLatest });
           state.amprPickerVersions = state.amprPickerVersions.map((item) =>
             item.version === entry.version ? Object.assign({}, item, entry) : item
           );
         }
-        if (!entry.sha256) throw new Error('Selected APR-EMU SHA-256 is unavailable');
+        if (!entry.sha256) throw new Error(t('ampr.error.noSha'));
         hideModal('ampr-version-modal');
         await enqueueAmprUpdate(g, entry.version, entry.sha256, 'manual');
         state.amprPickerGame = null;
         state.amprPickerVersions = [];
         state.amprPickerSelected = '';
       } catch (err) {
-        state.amprPickerError = err.message || 'APR-EMU version apply failed';
+        state.amprPickerError = err.message || t('ampr.error.apply');
         alert(formatByteText(state.amprPickerError));
       } finally {
         state.amprPickerBusy = false;
         state.amprBusy = false;
         state.amprPickerBusyText = '';
+        state.amprPickerBusyTextKey = '';
         renderAmprVersionModal();
         refreshPrimaryArea(selectedGame());
       }
@@ -3927,130 +4462,130 @@
         (op && (op.badBlocksFound || op.repairedBlocks)) || 0);
 
       if (jobCanceling(job)) {
-        return { label: 'Canceling', className: 'closing' };
+        return { label: t('status.canceling'), className: 'closing' };
       }
       if (phase === 'resolving') {
-        return { label: 'Resolving', className: 'finalizing' };
+        return { label: t('status.resolving'), className: 'finalizing' };
       }
       if (phase === 'measuring') {
-        return { label: 'Measuring', className: 'scanning' };
+        return { label: t('status.measuring'), className: 'scanning' };
       }
       if (phase === 'closing' || current.indexOf('closing') !== -1) {
-        return { label: 'Closing', className: 'closing' };
+        return { label: t('status.closing'), className: 'closing' };
       }
       if (action === 'refresh-mount') {
         if (phase === 'hiding' || current.indexOf('hiding other') !== -1) {
-          return { label: 'Hiding other instances', className: 'mounting' };
+          return { label: t('status.hidingOtherInstances'), className: 'mounting' };
         }
         if (phase === 'restoring' || current.indexOf('restoring other') !== -1) {
-          return { label: 'Restoring other instances', className: 'restoring' };
+          return { label: t('status.restoringOtherInstances'), className: 'restoring' };
         }
         if (phase === 'complete') {
-          return { label: 'Done', className: 'finalizing' };
+          return { label: t('common.done'), className: 'finalizing' };
         }
-        return { label: 'Mounting', className: 'mounting' };
+        return { label: t('status.mounting'), className: 'mounting' };
       }
       if (action === 'delete-game-data') {
-        return { label: 'Deleting', className: 'deleting' };
+        return { label: t('status.deleting'), className: 'deleting' };
       }
       if (action === 'build-ampr-index') {
         if (phase === 'complete') {
-          return { label: 'APR Indexed', className: 'finalizing' };
+          return { label: t('status.aprIndexed'), className: 'finalizing' };
         }
-        return { label: 'Building APR Index', className: 'scanning' };
+        return { label: t('status.buildingAprIndex'), className: 'scanning' };
       }
       if (action === 'update-ampr') {
         if (phase === 'complete') {
-          return { label: 'APR-EMU Updated', className: 'ampr-updating' };
+          return { label: t('status.amprUpdated'), className: 'ampr-updating' };
         }
         if (phase === 'rebuilding') {
-          return { label: 'Rebuilding APR-EMU', className: 'ampr-updating' };
+          return { label: t('status.rebuildingAmpr'), className: 'ampr-updating' };
         }
         if (phase === 'patching') {
-          return { label: 'Updating APR-EMU', className: 'ampr-updating' };
+          return { label: t('status.updatingAmpr'), className: 'ampr-updating' };
         }
-        return { label: 'Updating APR-EMU', className: 'ampr-updating' };
+        return { label: t('status.updatingAmpr'), className: 'ampr-updating' };
       }
       if (action === 'read-speed-test') {
-        return { label: 'Testing Read Speed', className: 'reading' };
+        return { label: t('status.testingReadSpeed'), className: 'reading' };
       }
       if (action === 'set-read-only') {
         if (phase === 'complete') {
-          return { label: 'Done', className: 'finalizing' };
+          return { label: t('common.done'), className: 'finalizing' };
         }
-        return { label: 'Updating ShadowMount', className: 'mounting' };
+        return { label: t('status.updatingShadowMount'), className: 'mounting' };
       }
       if (phase === 'mounting' ||
         current.indexOf('requesting shadowmount') !== -1 ||
         current.indexOf('waiting for shadowmount') !== -1 ||
         current.indexOf('waiting for remount') !== -1 ||
         current.indexOf('remount') !== -1) {
-        return { label: 'Mounting', className: 'mounting' };
+        return { label: t('status.mounting'), className: 'mounting' };
       }
       if (current.indexOf('publishing') !== -1) {
-        return { label: 'Publishing', className: 'moving' };
+        return { label: t('status.publishing'), className: 'moving' };
       }
       if (phase === 'preflight' ||
         current.indexOf('opening existing') !== -1 ||
         current.indexOf('building nested') !== -1) {
-        return { label: 'Inspecting', className: 'finalizing' };
+        return { label: t('status.inspecting'), className: 'finalizing' };
       }
       if (phase === 'metadata' || current.indexOf('finalizing') !== -1) {
-        return { label: 'Finalizing', className: 'finalizing' };
+        return { label: t('status.finalizing'), className: 'finalizing' };
       }
       if (phase === 'restoring' || current.indexOf('restoring original') !== -1) {
-        return { label: 'Restoring', className: 'unpacking' };
+        return { label: t('status.restoring'), className: 'unpacking' };
       }
       if (action === 'move-to-usb' || action === 'move-to-internal') {
-        return { label: 'Transferring', className: 'moving' };
+        return { label: t('status.transferring'), className: 'moving' };
       }
       if (action === 'copy-to-usb' || action === 'copy-to-internal') {
-        return { label: 'Copying', className: 'moving' };
+        return { label: t('status.copying'), className: 'moving' };
       }
       if (action === 'extract-image') {
-        return { label: 'Extracting', className: 'moving' };
+        return { label: t('status.extracting'), className: 'moving' };
       }
       if (phase === 'copying') {
-        return { label: 'Repacking', className: 'repacking' };
+        return { label: t('status.repacking'), className: 'repacking' };
       }
       if (action === 'make-image') {
-        return { label: 'Making Image', className: 'moving' };
+        return { label: t('status.makingImage'), className: 'moving' };
       }
       if (action === 'uncompress') {
-        return { label: 'Unpacking', className: 'unpacking' };
+        return { label: t('status.unpacking'), className: 'unpacking' };
       }
       if ((action === 'compress' || validationAction) && mountedValidationScan) {
-        return { label: 'Validating', className: 'validating' };
+        return { label: t('status.validating'), className: 'validating' };
       }
       if (validationAction &&
         repairBlocks <= 0 &&
         (phase === 'repairing' || opPhase === 'repairing' ||
           current.indexOf('repairing') !== -1)) {
-        return { label: 'Validating', className: 'validating' };
+        return { label: t('status.validating'), className: 'validating' };
       }
       if (phase === 'repairing' ||
         opPhase === 'repairing' ||
         current.indexOf('repairing') !== -1 ||
         current.indexOf('rebuilding repaired') !== -1) {
-        return { label: 'Repacking', className: 'repacking' };
+        return { label: t('status.repacking'), className: 'repacking' };
       }
       if (validationAction ||
         phase === 'opening' ||
         phase === 'finding-mounted-image' ||
         current.indexOf('validat') !== -1 ||
         current.indexOf('checking shadowmount') !== -1) {
-        return { label: 'Validating', className: 'validating' };
+        return { label: t('status.validating'), className: 'validating' };
       }
       if (phase === 'scanning' ||
         current.indexOf('scanning app folder') !== -1 ||
         current.indexOf('scheduling budgeted stream') !== -1 ||
         current.indexOf('scanning nested') !== -1) {
-        return { label: 'Scanning', className: 'scanning' };
+        return { label: t('status.scanning'), className: 'scanning' };
       }
       if (action === 'compress') {
-        return { label: 'Compressing', className: 'compressing' };
+        return { label: t('status.compressing'), className: 'compressing' };
       }
-      return { label: 'Running', className: 'run' };
+      return { label: t('status.running'), className: 'run' };
     }
 
     function progressUnits(job) {
@@ -4129,26 +4664,26 @@
       }
       if (g.pendingOp) {
         return '<span class="chip warn">' +
-          escapeHtml(pendingOperationLabel(g.pendingOp).toLowerCase()) +
+          escapeHtml(smallLabel(pendingOperationLabel(g.pendingOp))) +
           '</span>';
       }
       if (g.amprUpdateNeeded === true) {
-        return '<span class="chip ampr">APR update</span>';
+        return '<span class="chip ampr">' + escapeHtml(t('status.aprUpdate')) + '</span>';
       }
       if (g.sourceKind === 'compressed') {
-        if (g.validation === 'validated') return '<span class="chip ok">validated</span>';
-        if (g.validation === 'changed') return '<span class="chip warn">changed</span>';
-        return '<span class="chip bad">not validated</span>';
+        if (g.validation === 'validated') return '<span class="chip ok">' + escapeHtml(t('status.validated')) + '</span>';
+        if (g.validation === 'changed') return '<span class="chip warn">' + escapeHtml(t('status.changed')) + '</span>';
+        return '<span class="chip bad">' + escapeHtml(t('status.notValidated')) + '</span>';
       }
-      if (g.sourceKind === 'folder') return '<span class="chip">folder</span>';
-      if (g.sourceKind === 'image') return '<span class="chip">image</span>';
-      return '<span class="chip bad">unavailable</span>';
+      if (g.sourceKind === 'folder') return '<span class="chip">' + escapeHtml(t('status.folder')) + '</span>';
+      if (g.sourceKind === 'image') return '<span class="chip">' + escapeHtml(t('status.image')) + '</span>';
+      return '<span class="chip bad">' + escapeHtml(t('status.unavailable')) + '</span>';
     }
 
     function mountStateChip(g) {
       if (!g || g.isMounted !== false) return '';
       const status = String(g.mountStatus || '').toLowerCase();
-      const label = status === 'working' ? 'working' : 'not mounted';
+      const label = status === 'working' ? t('common.working').replace(/\.\.\.$/, '') : t('status.notMounted');
       return '<span class="chip bad">' + escapeHtml(label) + '</span>';
     }
 
@@ -4173,11 +4708,11 @@
 	    }
 
 	    function aprIndexedChip(item) {
-	      return item && item.aprIndexed ? '<span class="chip ok">APR Indexed</span>' : '';
+      return item && item.aprIndexed ? '<span class="chip ok">' + escapeHtml(t('status.aprIndexed')) + '</span>' : '';
 	    }
 
 	    function amprUpdateChip(g) {
-	      return g && g.amprUpdateNeeded === true ? '<span class="chip ampr">APR update needed</span>' : '';
+      return g && g.amprUpdateNeeded === true ? '<span class="chip ampr">' + escapeHtml(t('status.aprUpdateNeeded')) + '</span>' : '';
 	    }
 
 	    function amprCurrentVersion(g) {
@@ -4187,9 +4722,9 @@
 
 	    function amprVersionDisplay(version) {
 	      const text = String(version || '').trim();
-	      if (text === 'original') return 'APR original';
-	      if (text.indexOf('custom-') === 0) return 'APR custom';
-	      return text ? 'APR v' + text : '';
+      if (text === 'original') return t('status.aprOriginal');
+      if (text.indexOf('custom-') === 0) return t('status.aprCustom');
+      return text ? t('status.aprVersion', { version: isolateLtr(text) }) : '';
 	    }
 
 	    function amprVersionChip(g) {
@@ -4247,20 +4782,23 @@
 	    }
 
 	    function aprIndexedChipForGame(g) {
-	      return gameAprIndexedFromLastState(g) ? '<span class="chip ok">APR Indexed</span>' : '';
+      return gameAprIndexedFromLastState(g) ? '<span class="chip ok">' + escapeHtml(t('status.aprIndexed')) + '</span>' : '';
 	    }
 
 	    function instanceRoleChip(g) {
-	      const role = gameInstanceRole(g);
-	      if (!role) return '';
-	      return '<span class="chip ' + (role === 'current output' ? 'run' : '') + '">' +
-	        escapeHtml(smallLabel(role)) + '</span>';
+      const role = gameInstanceRole(g);
+      if (!role) return '';
+      const label = role === 'current output'
+        ? t('status.currentOutput')
+        : t('status.originalSource');
+      return '<span class="chip ' + (role === 'current output' ? 'run' : '') + '">' +
+        escapeHtml(smallLabel(label)) + '</span>';
 	    }
 
 	    function locationCountChip(g) {
 	      const count = titleInstanceCount(g);
 	      if (count <= 1) return '';
-	      return '<span class="chip">' + escapeHtml(smallLabel(count + ' locations')) + '</span>';
+      return '<span class="chip">' + escapeHtml(smallLabel(t('status.locations', { count }))) + '</span>';
 	    }
 
 	    function rowTagLabel(tag) {
@@ -4277,11 +4815,13 @@
 	      const role = gameInstanceRole(g);
 	      const count = titleInstanceCount(g);
 	      if (storage) tags.push(storage);
-	      if (role) tags.push(role);
+      if (role) tags.push(role === 'current output'
+        ? t('status.currentOutput')
+        : t('status.originalSource'));
 	      const amprVersion = amprCurrentVersion(g);
 	      if (amprVersion) tags.push(amprVersionDisplay(amprVersion));
-	      if (g && g.amprUpdateNeeded === true) tags.push('APR update');
-	      if (count > 1) tags.push(count + ' locations');
+      if (g && g.amprUpdateNeeded === true) tags.push(t('status.aprUpdate'));
+      if (count > 1) tags.push(t('status.locations', { count }));
 	      if (!tags.length) return '';
 	      return '<div class="row-tags">' + tags.map((tag) => (
 	        '<span class="' + rowTagClass(tag) + '">' + escapeHtml(rowTagLabel(tag)) + '</span>'
@@ -4318,30 +4858,30 @@
 
 	    function storageInfoForName(name) {
 	      const value = String(name || '').toLowerCase();
-	      if (value === 'internal') return { kind: 'internal', label: 'Internal SSD', root: '/data' };
-	      if (value === 'external') return { kind: 'external', label: 'External SSD', root: '/mnt/ext0' };
-	      if (value === 'm2') return { kind: 'm2', label: 'M.2 SSD', root: '/mnt/ext1' };
-	      if (value === 'usb') return { kind: 'usb', label: 'USB', root: '/mnt/usb' };
+      if (value === 'internal') return { kind: 'internal', label: t('storage.internalSsd'), root: '/data' };
+      if (value === 'external') return { kind: 'external', label: t('storage.externalSsd'), root: '/mnt/ext0' };
+      if (value === 'm2') return { kind: 'm2', label: t('storage.m2Ssd'), root: '/mnt/ext1' };
+      if (value === 'usb') return { kind: 'usb', label: t('storage.usb'), root: '/mnt/usb' };
 	      return value ? { kind: value, label: value, root: '' } : { kind: '', label: '', root: '' };
 	    }
 
 	    function storageInfoForPath(path) {
 	      const value = normalizedPath(path);
 	      if (!value) return { kind: '', label: '', root: '' };
-	      if (pathUnderRoot(value, '/data')) return { kind: 'internal', label: 'Internal SSD', root: '/data' };
-	      if (pathUnderRoot(value, '/mnt/ext0')) return { kind: 'external', label: 'External SSD', root: '/mnt/ext0' };
-	      if (pathUnderRoot(value, '/mnt/ext1')) return { kind: 'm2', label: 'M.2 SSD', root: '/mnt/ext1' };
+      if (pathUnderRoot(value, '/data')) return { kind: 'internal', label: t('storage.internalSsd'), root: '/data' };
+      if (pathUnderRoot(value, '/mnt/ext0')) return { kind: 'external', label: t('storage.externalSsd'), root: '/mnt/ext0' };
+      if (pathUnderRoot(value, '/mnt/ext1')) return { kind: 'm2', label: t('storage.m2Ssd'), root: '/mnt/ext1' };
 	      for (let i = 0; i <= 7; i++) {
 	        const root = '/mnt/usb' + i;
-	        if (pathUnderRoot(value, root)) return { kind: 'usb' + i, label: 'USB ' + i, root };
+        if (pathUnderRoot(value, root)) return { kind: 'usb' + i, label: t('storage.usbNumber', { number: i }), root };
 	      }
-	      return { kind: 'other', label: 'Other storage', root: '' };
+      return { kind: 'other', label: t('storage.other'), root: '' };
 	    }
 
 	    function storageLabelForGame(g) {
 	      const fromPath = storageInfoForPath(g && g.sourcePath);
 	      if (fromPath.label) return fromPath.label;
-	      return storageInfoForName(g && g.storage).label || 'storage';
+      return storageInfoForName(g && g.storage).label || t('storage.generic');
 	    }
 
 	    function storageLabelWithPath(path) {
@@ -4350,7 +4890,7 @@
 	    }
 
 	    function operationSourceLabel(op) {
-	      return storageLabelWithPath(op && op.sourcePath) || 'Source';
+      return storageLabelWithPath(op && op.sourcePath) || t('common.source');
 	    }
 
 	    function operationTargetLabel(op) {
@@ -4363,17 +4903,22 @@
 	      if (!op) return '';
 	      const action = String(op.action || '').toLowerCase();
 	      if (!operationChangesGameState(op)) return '';
-	      const source = operationSourceLabel(op);
-	      const target = operationTargetLabel(op);
+      const source = operationSourceLabel(op);
+      const target = operationTargetLabel(op);
       if (!target || source === target) {
-        if (action === 'compress') return source + ' compressed in place';
-        if (action === 'make-image') return source + ' made into image';
-        if (action === 'uncompress') return source + ' unpacked in place';
-	        if (action === 'extract-image') return source + ' extracted to folder';
-	        if (action === 'update-ampr') return source + ' APR-EMU updated';
-	        return source;
+
+        const isolatedSource = isolateAuto(source);
+        if (action === 'compress') return t('operation.direction.compressedInPlace', { source: isolatedSource });
+        if (action === 'make-image') return t('operation.direction.madeImage', { source: isolatedSource });
+        if (action === 'uncompress') return t('operation.direction.unpackedInPlace', { source: isolatedSource });
+        if (action === 'extract-image') return t('operation.direction.extractedFolder', { source: isolatedSource });
+        if (action === 'update-ampr') return t('operation.direction.amprUpdated', { source: isolatedSource });
+	        return isolatedSource;
 	      }
-	      return source + ' -> ' + target;
+      return t('operation.direction.transfer', {
+        source: isolateAuto(source),
+        target: isolateAuto(target)
+      });
 	    }
 
 	    function findGameByPath(path) {
@@ -4710,7 +5255,8 @@
 	      const stats = compressionStatsForGame(g);
 	      const saved = Number((stats && stats.savedBytes) || 0);
 	      if (!g || saved <= 0) return '';
-	      return '<span class="chip metric ok">saved ' + escapeHtml(shortSize(saved)) + '</span>';
+	      return '<span class="chip metric ok">' +
+        escapeHtml(t('status.savedSize', { size: isolateLtr(shortSize(saved)) })) + '</span>';
 	    }
 
 	    function exactFolderScanSize(g) {
@@ -4728,17 +5274,17 @@
         const status = sizeStatus(g);
         const exactScanSize = exactFolderScanSize(g);
         if (exactScanSize > 0) {
-          return '<span class="chip metric size-estimate" title="Measured folder size">' +
-            escapeHtml(cardSize(exactScanSize)) + '</span>';
+          return '<span class="chip metric size-estimate" title="' + escapeHtml(t('status.measuredFolderSize')) + '">' +
+            escapeHtml(isolateLtr(cardSize(exactScanSize))) + '</span>';
         }
         const size = Number(g.sourceSize || 0);
         if (size > 0) {
           const title = status === 'refreshing'
-            ? 'Estimated folder size, checking for updates'
+            ? t('status.estimatedFolderSize')
             : status === 'cached'
-              ? 'Cached estimated folder size for display only'
-              : 'Folder size';
-          const label = (status === 'done' ? '' : '~') + cardSize(size);
+              ? t('status.cachedFolderSize')
+              : t('status.folderSize');
+          const label = isolateLtr((status === 'done' ? '' : '~') + cardSize(size));
           const dots = status === 'refreshing'
             ? '<span class="measure-dots" data-measure-dots aria-hidden="true">...</span>'
             : '';
@@ -4746,10 +5292,10 @@
             escapeHtml(label) + dots + '</span>';
         }
         if (status === 'queued') {
-          return '<span class="chip size-pending">size queued</span>';
+          return '<span class="chip size-pending">' + escapeHtml(t('status.sizeQueued')) + '</span>';
         }
         if (status === 'scanning' || status === 'refreshing') {
-          return '<span class="chip size-pending">scanning size' +
+          return '<span class="chip size-pending">' + escapeHtml(t('status.scanningSize')) +
             '<span class="measure-dots" data-measure-dots aria-hidden="true">...</span></span>';
         }
         return '';
@@ -4759,7 +5305,8 @@
         ? Number(stats.compressedSize || 0)
         : Number(g && g.sourceSize || 0);
       if (size <= 0) return '';
-      return '<span class="chip metric size-estimate">' + cardSize(size) + '</span>';
+      return '<span class="chip metric size-estimate">' +
+        escapeHtml(isolateLtr(cardSize(size))) + '</span>';
     }
 
     function latestMountFailureForGame(g) {
@@ -4786,21 +5333,21 @@
 
     function failureNoticeTitle(op) {
       const action = String((op && op.action) || 'operation').toLowerCase();
-      if (action === 'compress') return 'Compress failed';
-      if (action === 'make-image') return 'Make image failed';
-      if (action === 'uncompress') return 'Unpack failed';
-      if (action === 'extract-image') return 'Extract failed';
-      if (action === 'validate-repair' || action === 'validate-only') return 'Validate failed';
-      if (action === 'refresh-mount') return 'Mount failed';
-      if (action === 'set-read-only') return 'Set read-only failed';
-      if (action === 'build-ampr-index') return 'APR index failed';
-      if (action === 'update-ampr') return 'APR-EMU update failed';
-      if (action === 'read-speed-test') return 'Read speed failed';
-      return 'Operation failed';
+      if (action === 'compress') return t('failure.compress');
+      if (action === 'make-image') return t('failure.makeImage');
+      if (action === 'uncompress') return t('failure.unpack');
+      if (action === 'extract-image') return t('failure.extract');
+      if (action === 'validate-repair' || action === 'validate-only') return t('failure.validate');
+      if (action === 'refresh-mount') return t('failure.mount');
+      if (action === 'set-read-only') return t('failure.setReadOnly');
+      if (action === 'build-ampr-index') return t('failure.aprIndex');
+      if (action === 'update-ampr') return t('failure.amprUpdate');
+      if (action === 'read-speed-test') return t('failure.readSpeed');
+      return t('failure.operation');
     }
 
     function failureNoticeText(op) {
-      return formatByteText((op && op.error) || historyResultLabel(op, null) || 'Failed');
+      return formatByteText((op && op.error) || historyResultLabel(op, null) || t('common.failed'));
     }
 
     function showFailureNotice(op) {
@@ -4917,12 +5464,13 @@
     }
 
     function badBlocksChipHtml(blocks, dir) {
-      const label = blocks + ' bad block' + (blocks === 1 ? '' : 's') + ' found';
+      const label = t('status.badBlocks', { count: blocks });
       if (blocks <= 0) {
         return '<span class="chip metric ok">' + escapeHtml(label) + '</span>';
       }
       if (dir) {
-        return '<button class="chip metric warn" type="button" title="Open bad block log" data-bad-blocks-dir="' +
+        return '<button class="chip metric warn" type="button" title="' +
+          escapeHtml(t('status.openBadBlockLog')) + '" data-bad-blocks-dir="' +
           escapeHtml(dir) + '">' + escapeHtml(label) + '</button>';
       }
       return '<span class="chip metric warn">' + escapeHtml(label) + '</span>';
@@ -4969,8 +5517,8 @@
       }
       const blocks = completedRepairBlocksForGame(g);
       if (blocks === null || blocks <= 0) return '';
-      return '<span class="chip metric ok">' + blocks + ' block' +
-        (blocks === 1 ? '' : 's') + ' repaired</span>';
+      return '<span class="chip metric ok">' +
+        escapeHtml(t('status.repairedBlocks', { count: blocks })) + '</span>';
     }
 
     function repairResultKeyForGame(g) {
@@ -5005,7 +5553,7 @@
     function repairedBlocksText(op, job) {
       const blocks = repairBlocksForOperation(op, job);
       if (blocks <= 0) return '';
-      return blocks + ' block' + (blocks === 1 ? '' : 's') + ' repaired';
+      return t('status.repairedBlocks', { count: blocks });
     }
 
     function readSpeedAverageText(op) {
@@ -5024,38 +5572,39 @@
       const action = String((op && op.action) || '').toLowerCase();
       const error = String((op && op.error) || '').toLowerCase();
       if (action === 'compress' && error.indexOf('output already exists') !== -1) {
-        return 'output already exists';
+        return t('result.outputExists');
       }
       if (action === 'validate-only') {
-        if (result === 'bad-blocks-found-not-mounted') return "bad blocks found, didn't mount";
-        if (result === 'verified-not-mounted') return "no bad blocks found, didn't mount";
-        if (result === 'bad-blocks-found') return 'bad blocks found';
-        if (result === 'clean') return 'no bad blocks found';
+        if (result === 'bad-blocks-found-not-mounted') return t('result.badBlocksNotMounted');
+        if (result === 'verified-not-mounted') return t('result.noBadBlocksNotMounted');
+        if (result === 'bad-blocks-found') return t('result.badBlocksFound');
+        if (result === 'clean') return t('result.noBadBlocksFound');
       }
       if (action === 'uncompress' && result === 'not-mounted') {
-        return "unpacked, didn't mount";
+        return t('result.unpackedNotMounted');
       }
       if (action === 'refresh-mount') {
-        if (result === 'success') return 'mounted';
-        if (result === 'not-mounted') return 'not mounted';
+        if (result === 'success') return t('result.mounted');
+        if (result === 'not-mounted') return t('result.notMounted');
       }
       if (action === 'set-read-only') {
-        if (result === 'already-read-only') return 'already read-only';
-        if (result === 'read-only') return 'set read-only';
+        if (result === 'already-read-only') return t('result.alreadyReadOnly');
+        if (result === 'read-only') return t('result.setReadOnly');
       }
       if (action === 'read-speed-test') {
         const average = readSpeedAverageText(op);
-        if (average) return 'avg ' + average;
-        if (result === 'tested') return 'tested read speed';
+        if (average) return t('history.averageSpeed', { speed: isolateLtr(average) });
+        if (result === 'tested') return t('result.testedReadSpeed');
       }
       if (action === 'update-ampr' && result === 'updated') {
-        return 'APR-EMU updated';
+        return t('result.amprUpdated');
       }
-      if (opLooksLikeMountFailure(op)) return "verified, didn't mount";
+      if (opLooksLikeMountFailure(op)) return t('result.verifiedNotMounted');
       const repairText = repairedBlocksText(op, job);
-      if (!repairText) return result;
+      const localizedResult = operationStatusLabel(result);
+      if (!repairText) return localizedResult;
       return op.status === 'failed' && result ?
-        result + ' - ' + repairText :
+        localizedResult + ' - ' + repairText :
         repairText;
     }
 
@@ -5085,7 +5634,7 @@
     async function retryCompressSkippingSpaceCheck(id) {
       const op = operationById(id);
       if (!operationCanRetrySkipSpaceCheck(op)) return;
-      const ok = confirm('Could not check free storage for this target.\n\nYou can continue, but compression may fail if storage is actually low. The original will be kept until the new file is complete and verified.');
+      const ok = confirm(t('error.spaceCheckRetry'));
       if (!ok) return;
       let url = '/api/gc/compress?titleId=' + encodeURIComponent(op.titleId || '') +
         '&sourcePath=' + encodeURIComponent(op.sourcePath || '') +
@@ -5098,7 +5647,7 @@
       } else if (targetRoot) {
         const usbId = await storageTargetIdForRoot(targetRoot);
         if (!usbId) {
-          alert('Could not find the original target storage for this retry.');
+          alert(t('error.retryTargetMissing'));
           return;
         }
         url += '&destination=usb&usbId=' + encodeURIComponent(usbId);
@@ -5256,10 +5805,10 @@
     }
 
     function headerFreeSpaceLabel(g) {
-      if (!g) return 'Free Space';
+      if (!g) return t('header.freeSpace');
       const fromOutput = storageInfoForPath(g.outputPath);
       const label = fromOutput.label || storageLabelForGame(g);
-      return label ? label + ' Free' : 'Free Space';
+      return label ? t('header.storageFree', { storage: label }) : t('header.freeSpace');
     }
 
     function headerKey() {
@@ -5347,19 +5896,18 @@
       state.renderKeys.list = key;
       const list = $('game-list');
       if (!state.games.length && state.gamesLoading) {
-        $('count-label').textContent = 'Scanning games';
+        $('count-label').textContent = t('loading.scanningGames');
         list.innerHTML = gamesLoadingMarkup(false);
         return;
       }
       if (!state.games.length && state.gamesError) {
-        $('count-label').textContent = 'Scan failed';
+        $('count-label').textContent = t('games.scanFailed');
         list.innerHTML = '<div class="empty">' + escapeHtml(state.gamesError) + '</div>';
         return;
       }
-      $('count-label').textContent = state.games.length +
-        (state.games.length === 1 ? ' game' : ' games');
+      $('count-label').textContent = t('games.count', { count: state.games.length });
       if (!state.games.length) {
-        list.innerHTML = '<div class="empty">No games found</div>';
+        list.innerHTML = '<div class="empty">' + escapeHtml(t('games.noneFound')) + '</div>';
         return;
       }
 	      list.innerHTML = state.games.map((g) => (
@@ -5369,8 +5917,9 @@
 	        (gameInstanceRole(g) === 'current output' ? ' is-output' : '') +
 	        '" data-id="' + escapeHtml(gameInstanceId(g)) + '">' +
 	        '<div class="thumb">' + gameIcon(g, false) + '</div>' +
-	        '<div class="row-main"><div class="row-title">' + escapeHtml(g.name || g.titleId) + '</div>' +
-	        '<div class="row-sub"><span>' + escapeHtml(g.titleId) + '</span></div>' +
+	        '<div class="row-main"><div class="row-title"><bdi class="auto-token">' +
+	        escapeHtml(g.name || g.titleId) + '</bdi></div>' +
+	        '<div class="row-sub"><bdi class="ltr-token">' + escapeHtml(g.titleId) + '</bdi></div>' +
 	        rowTagsHtml(g) +
 	        '</div>' +
 	        statusChip(g) +
@@ -5401,10 +5950,9 @@
         '<div class="loading-pill" aria-hidden="true">' +
         '<span class="loading-dots"><span></span><span></span><span></span></span>' +
         '</div>' +
-        '<div><div class="loading-title">Scanning games</div>' +
+        '<div><div class="loading-title">' + escapeHtml(t('loading.scanningGames')) + '</div>' +
         '<div class="loading-subtitle">' +
-        (detail ? 'This can take a moment on PS5 storage.' :
-          'Looking for installed and compressed game entries.') +
+        escapeHtml(detail ? t('loading.gamesDetail') : t('loading.gamesList')) +
         '</div></div>' +
         '</div>';
     }
@@ -5415,8 +5963,20 @@
       }[ch]));
     }
 
+    function isolateAuto(value) {
+      const text = String(value || '');
+      return document.documentElement.dir === 'rtl' ? '\u2068' + text + '\u2069' : text;
+    }
+
+    function isolateLtr(value) {
+      const text = String(value || '');
+      return document.documentElement.dir === 'rtl' ? '\u2066' + text + '\u2069' : text;
+    }
+
     function smallLabel(s) {
-      return String(s || '').toLowerCase();
+      const value = String(s || '');
+      const locale = i18n ? String(i18n.getLocale() || 'en') : 'en';
+      return locale.split('-')[0] === 'en' ? value.toLowerCase() : value;
     }
 
     function baseActionFor(g) {
@@ -5434,51 +5994,91 @@
 
     function actionLabel(g) {
       const action = actionFor(g);
-      if (action === 'update-ampr') return 'Update APR-EMU';
-      if (action === 'validate-repair') return g.primaryAction || 'Validate and Repair';
-      if (action === 'compress') return g.primaryAction || 'Compress';
-      return 'Start';
+      if (action === 'update-ampr') return t('operation.action.updateAmpr');
+      if (action === 'validate-repair') return g && g.validation === 'validated'
+        ? t('operation.action.revalidateRepair')
+        : t('operation.action.validateRepair');
+      if (action === 'compress') return t('operation.action.compress');
+      return t('common.start');
+    }
+
+    function operationActionLabel(action) {
+      const value = String(action || '').toLowerCase();
+      if (value === 'compress') return t('operation.action.compress');
+      if (value === 'make-image') return t('operation.action.makeImage');
+      if (value === 'validate-repair') return t('operation.action.validateRepair');
+      if (value === 'validate-only') return t('operation.action.validateOnly');
+      if (value === 'refresh-mount') return t('operation.mountNow');
+      if (value === 'set-read-only') return t('operation.action.setReadOnly');
+      if (value === 'uncompress') return t('operation.action.uncompress');
+      if (value === 'extract-image') return t('operation.action.extractFolder');
+      if (value === 'move-to-usb' || value === 'move-to-internal') return t('operation.action.moveTo');
+      if (value === 'copy-to-usb' || value === 'copy-to-internal') return t('operation.action.copyTo');
+      if (value === 'delete-game-data') return t('operation.action.deleteGameData');
+      if (value === 'build-ampr-index') return t('operation.action.buildAprIndex');
+      if (value === 'update-ampr') return t('operation.action.updateAmpr');
+      if (value === 'read-speed-test') return t('operation.testReadSpeed');
+      return String(action || '');
+    }
+
+    function operationStatusLabel(status) {
+      const value = String(status || '').toLowerCase();
+      if (value === 'success' || value === 'complete') return t('common.success');
+      if (value === 'failed') return t('common.failed');
+      if (value === 'running') return t('status.running');
+      if (value === 'pending' || value === 'queued') return t('common.pending');
+      if (value === 'cancelled' || value === 'canceled') return t('common.cancelled');
+      return String(status || '');
+    }
+
+    function sourceKindLabel(sourceKind) {
+      const value = String(sourceKind || '').toLowerCase();
+      if (value === 'folder') return t('status.folder');
+      if (value === 'image') return t('status.image');
+      if (value === 'compressed') return t('status.compressed');
+      if (value === 'unknown' || !value) return t('status.unavailable');
+      return String(sourceKind || '');
     }
 
 	    function pendingOperationLabel(op) {
 	      const action = String((op && op.action) || '').toLowerCase();
-      if (action === 'compress') return 'Pending Compress';
-      if (action === 'make-image') return 'Pending Make Image';
-      if (action === 'validate-repair' || action === 'validate-only') return 'Pending Validate';
-      if (action === 'refresh-mount') return 'Pending Mount';
-      if (action === 'set-read-only') return 'Pending Set Read Only';
-      if (action === 'uncompress') return 'Pending Unpack';
-      if (action === 'extract-image') return 'Pending Extract';
-      if (action === 'move-to-usb') return 'Pending Move to External Storage';
-      if (action === 'move-to-internal') return 'Pending Move to Internal SSD';
-      if (action === 'copy-to-usb') return 'Pending Copy to External Storage';
-      if (action === 'copy-to-internal') return 'Pending Copy to Internal SSD';
-      if (action === 'delete-game-data') return 'Pending Delete';
-      if (action === 'build-ampr-index') return 'Pending APR Index';
-      if (action === 'update-ampr') return 'Pending APR-EMU Update';
-	      if (action === 'read-speed-test') return 'Pending Read Speed Test';
-	      return 'Pending Operation';
+      if (action === 'compress') return t('operation.pending.compress');
+      if (action === 'make-image') return t('operation.pending.makeImage');
+      if (action === 'validate-repair' || action === 'validate-only') return t('operation.pending.validate');
+      if (action === 'refresh-mount') return t('operation.pending.mount');
+      if (action === 'set-read-only') return t('operation.pending.setReadOnly');
+      if (action === 'uncompress') return t('operation.pending.unpack');
+      if (action === 'extract-image') return t('operation.pending.extract');
+      if (action === 'move-to-usb') return t('operation.pending.moveExternal');
+      if (action === 'move-to-internal') return t('operation.pending.moveInternal');
+      if (action === 'copy-to-usb') return t('operation.pending.copyExternal');
+      if (action === 'copy-to-internal') return t('operation.pending.copyInternal');
+      if (action === 'delete-game-data') return t('operation.pending.delete');
+      if (action === 'build-ampr-index') return t('operation.pending.aprIndex');
+      if (action === 'update-ampr') return t('operation.pending.amprUpdate');
+      if (action === 'read-speed-test') return t('operation.pending.readSpeed');
+      return t('operation.pending.generic');
 	    }
 
 	    function pendingOperationMeta(op) {
 	      const direction = operationDirectionText(op);
 	      const output = String((op && op.outputPath) || '').trim();
-	      if (direction && output) return direction + ' - ' + output;
+	      if (direction && output) return direction + ' - ' + isolateLtr(output);
 	      if (direction) return direction;
-	      return output;
+	      return output ? isolateLtr(output) : '';
 	    }
 
 	    function operationOutputMeta(op) {
 	      const output = String((op && op.outputPath) || '').trim();
 	      if (!output) return '';
-	      return 'output: ' + output;
+      return t('history.outputPath', { path: isolateLtr(output) });
 	    }
 
 	    function operationSavedMeta(op) {
 	      if (!opCanShowCompressionStats(op)) return '';
 	      const stats = compressionOpStats(op);
 	      const saved = Number((stats && stats.savedBytes) || 0);
-	      return saved > 0 ? 'saved ' + shortSize(saved) : '';
+      return saved > 0 ? t('history.saved', { size: isolateLtr(shortSize(saved)) }) : '';
 	    }
 
     function progressPercent(job) {
@@ -5666,9 +6266,9 @@
 	      if (!op || scanned <= 0) return '';
 	      const scan = scanProgressInfo(null, op, null);
 	      if (scan.countable) {
-	        return 'scan: ' + scan.percent.toFixed(0) + '%';
+        return t('history.scanPercent', { percent: isolateLtr(scan.percent.toFixed(0)) });
 	      }
-	      return 'scan: ' + shortSize(scanned);
+      return t('history.scanSize', { size: isolateLtr(shortSize(scanned)) });
 	    }
 
     function speedMetricBytes(job) {
@@ -5770,38 +6370,38 @@
         actions.push({ id: normalAction, label: actionLabel({ ...g, amprUpdateNeeded: false }) });
       }
       if (g.amprPresent === true) {
-        actions.push({ id: 'choose-ampr-version', label: 'Choose APR-EMU Version' });
+        actions.push({ id: 'choose-ampr-version', label: t('operation.action.chooseAmpr') });
       }
       if (amprCanRestoreOriginal(g)) {
-        actions.push({ id: 'restore-ampr-original', label: 'Restore Original APR-EMU' });
+        actions.push({ id: 'restore-ampr-original', label: t('operation.action.restoreAmpr') });
       }
       if (sourceKind === 'folder') {
-        actions.push({ id: 'make-image', label: 'Make Image' });
+        actions.push({ id: 'make-image', label: t('operation.action.makeImage') });
         if (canBuildAmprIndex) {
-          actions.push({ id: 'build-ampr-index', label: 'Build AMPR Index' });
+          actions.push({ id: 'build-ampr-index', label: t('operation.action.buildAprIndex') });
         }
       }
       if (sourceKind === 'compressed' || actionFor(g) === 'validate-repair') {
-        actions.push({ id: 'validate-only', label: 'Validate Only' });
+        actions.push({ id: 'validate-only', label: t('operation.action.validateOnly') });
         if (canBuildAmprIndex) {
-          actions.push({ id: 'build-ampr-index', label: 'Build AMPR Index' });
+          actions.push({ id: 'build-ampr-index', label: t('operation.action.buildAprIndex') });
         }
-        actions.push({ id: 'uncompress', label: 'Uncompress' });
+        actions.push({ id: 'uncompress', label: t('operation.action.uncompress') });
       }
       if (sourceKind === 'image') {
-        actions.push({ id: 'set-read-only', label: 'Set Read Only' });
+        actions.push({ id: 'set-read-only', label: t('operation.action.setReadOnly') });
         if (canBuildAmprIndex) {
-          actions.push({ id: 'build-ampr-index', label: 'Build AMPR Index' });
+          actions.push({ id: 'build-ampr-index', label: t('operation.action.buildAprIndex') });
         }
         if (g.isMounted === true) {
-          actions.push({ id: 'extract-image', label: 'Extract to Folder' });
+          actions.push({ id: 'extract-image', label: t('operation.action.extractFolder') });
         }
       }
       if (g.canMoveToUsb || g.canMoveToInternal) {
-        actions.push({ id: 'copy-to', label: 'Copy to...' });
-        actions.push({ id: 'move-to', label: 'Move to...' });
+        actions.push({ id: 'copy-to', label: t('operation.action.copyTo') });
+        actions.push({ id: 'move-to', label: t('operation.action.moveTo') });
       }
-      actions.push({ id: 'delete-game-data', label: 'Delete Game Data', danger: true });
+      actions.push({ id: 'delete-game-data', label: t('operation.action.deleteGameData'), danger: true });
       return actions;
     }
 
@@ -5846,21 +6446,21 @@
           ? (scanProgress.countable ? scanProgress.percent : 0)
           : progressFillPercent(progress, visual);
         const cancelAttrs = cancelDisabled
-          ? ' disabled title="' + escapeHtml(cancelDisabledReason || 'Operation cannot be cancelled now') + '"'
+          ? ' disabled title="' + escapeHtml(cancelDisabledReason || t('operation.cancelUnavailable')) + '"'
           : destructiveStreamLocked
-            ? ' disabled title="Unsafe compression cannot be cancelled after it starts"'
+            ? ' disabled title="' + escapeHtml(t('operation.cancelUnsafe')) + '"'
           : jobCanceling(job)
-            ? ' disabled title="Cancel already requested"'
-            : ' title="Cancel operation"';
+            ? ' disabled title="' + escapeHtml(t('operation.cancelAlreadyRequested')) + '"'
+            : ' title="' + escapeHtml(t('accessibility.cancelOperation')) + '"';
 	        const percentText = displayPercent !== null
 	          ? '<span class="progress-percent">' + displayPercent.toFixed(0) + '%</span>'
 	          : '';
 	        const currentHtml = progressCurrentHtml(g.activeOp, job);
 	        const throughputHtml = visualShowsThroughput(visual, progress)
 	          ? '<span class="progress-time progress-speed">' +
-	          '<span class="progress-speed-value">' + progress.speedText + '</span></span>' +
+          '<span class="progress-speed-value">' + progress.speedText + '</span></span>' +
           (progress.countable
-            ? '<span class="progress-time progress-remaining">ETA: ' +
+            ? '<span class="progress-time progress-remaining">' + escapeHtml(t('progress.eta')) + ' ' +
             '<span class="progress-remaining-value">' + progress.remainingText + '</span></span>'
             : '')
           : '';
@@ -5878,7 +6478,7 @@
           throughputHtml +
           '</div>' +
           '</div>' +
-          '<button class="more-btn" id="cancel-active" aria-label="Cancel operation"' + cancelAttrs + '>' + icon('close') + '</button>' +
+          '<button class="more-btn" id="cancel-active" aria-label="' + escapeHtml(t('accessibility.cancelOperation')) + '"' + cancelAttrs + '>' + icon('close') + '</button>' +
           '</div>';
       }
 	      if (g.pendingOp) {
@@ -5887,10 +6487,10 @@
 	          escapeHtml(pendingOperationLabel(g.pendingOp)) +
 	          (meta ? '<div class="pending-meta">' + escapeHtml(meta) + '</div>' : '') +
 	          '</div>' +
-	          '<button class="small-action" id="cancel-pending">Cancel</button></div>';
+          '<button class="small-action" id="cancel-pending">' + escapeHtml(t('common.cancel')) + '</button></div>';
       }
       const action = actionFor(g);
-      if (!action) return '<button class="primary-btn" disabled>Unavailable</button>';
+      if (!action) return '<button class="primary-btn" disabled>' + escapeHtml(t('common.unavailable')) + '</button>';
       const primaryClass = action === 'update-ampr' ? 'primary-btn is-ampr' : 'primary-btn';
       const primary = '<button class="' + primaryClass + '" id="primary-action">' + escapeHtml(actionLabel(g)) + '</button>';
       const actions = secondaryActions(g);
@@ -5898,7 +6498,7 @@
       const expanded = state.secondaryMenuFor === gameInstanceId(g) ? 'true' : 'false';
       return '<div class="action-row">' +
         primary +
-        '<button class="more-btn" id="more-actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="' + expanded + '">' +
+        '<button class="more-btn" id="more-actions" aria-label="' + escapeHtml(t('accessibility.moreActions')) + '" aria-haspopup="menu" aria-expanded="' + expanded + '">' +
         '<span class="more-dots" aria-hidden="true"><span></span><span></span><span></span></span>' +
         '</button>' +
         '</div>';
@@ -5955,7 +6555,8 @@
 
       const triggerRect = trigger.getBoundingClientRect();
       const menuRect = menu.getBoundingClientRect();
-      let left = triggerRect.right - menuRect.width;
+      const rtl = document.documentElement.dir === 'rtl';
+      let left = rtl ? triggerRect.left : triggerRect.right - menuRect.width;
       left = Math.min(left, viewportWidth - padding - menuRect.width);
       left = Math.max(padding, left);
 
@@ -5990,7 +6591,7 @@
         startPollBurst(10000);
         await refreshAll();
       } catch (err) {
-        alert(formatByteText(err.message || 'Could not mount selected instance'));
+        alert(formatByteText(err.message || t('operation.mountFailed')));
       } finally {
         if (btn) btn.disabled = false;
       }
@@ -6007,7 +6608,7 @@
         startPollBurst(70000);
         await refreshAll();
       } catch (err) {
-        alert(formatByteText(err.message || 'Could not start read speed test'));
+        alert(formatByteText(err.message || t('operation.readSpeedStartFailed')));
       } finally {
         if (btn) btn.disabled = false;
       }
@@ -6041,6 +6642,7 @@
 
     function showModal(id) {
       closeSecondaryMenu();
+      closeLanguageMenu(false);
       const modal = $(id);
       if (!modal) return;
       modal.classList.remove('hidden');
@@ -6056,6 +6658,7 @@
 
     function toggleSecondaryMenu(g) {
       if (!g) return;
+      closeLanguageMenu(false);
       const key = gameInstanceId(g);
       state.secondaryMenuFor = state.secondaryMenuFor === key ? '' : key;
       refreshPrimaryArea(g);
@@ -6125,7 +6728,7 @@
             return;
           } catch (clipboardErr) { }
         }
-        alert('Could not copy path');
+        alert(t('operation.copyPathFailed'));
       }
     }
 
@@ -6144,7 +6747,7 @@
           detail.innerHTML = '<div class="empty">' + escapeHtml(state.gamesError) + '</div>';
           return;
         }
-        detail.innerHTML = '<div class="empty">No games found</div>';
+        detail.innerHTML = '<div class="empty">' + escapeHtml(t('games.noneFound')) + '</div>';
         return;
       }
       const sourceKind = String(g.sourceKind || '').toLowerCase();
@@ -6153,22 +6756,22 @@
       const showReadTest = g.isMounted === true &&
         !!g.sourcePath && !g.activeOp && !g.pendingOp && sourceKind !== 'unknown';
       const remountButton = showRemount
-        ? '<button class="remount-path" id="remount-path" aria-label="Mount now" title="Mount now"' +
-        '>' + icon('refresh') + '<span>Mount now</span></button>'
+        ? '<button class="remount-path" id="remount-path" aria-label="' + escapeHtml(t('operation.mountNow')) + '" title="' + escapeHtml(t('operation.mountNow')) + '"' +
+        '>' + icon('refresh') + '<span>' + escapeHtml(t('operation.mountNow')) + '</span></button>'
         : '';
       const readSpeedButton = showReadTest
-        ? '<button class="remount-path" id="read-speed-test" aria-label="Test read speed" title="Test read speed">' +
-        icon('timer') + '<span>Read speed</span></button>'
+        ? '<button class="remount-path" id="read-speed-test" aria-label="' + escapeHtml(t('operation.testReadSpeed')) + '" title="' + escapeHtml(t('operation.testReadSpeed')) + '">' +
+        icon('timer') + '<span>' + escapeHtml(t('operation.readSpeed')) + '</span></button>'
         : '';
       const hasPathAction = showRemount || showReadTest;
       detail.innerHTML =
         '<div class="detail-inner">' +
         '<div class="hero-icon' + heroIconClass(g) + '">' + gameIcon(g, true) + '</div>' +
-        '<h2 class="game-title">' + escapeHtml(g.name || g.titleId) + '</h2>' +
+        '<h2 class="game-title"><bdi class="auto-token">' + escapeHtml(g.name || g.titleId) + '</bdi></h2>' +
         '<div class="facts">' +
-	        '<span class="chip">' + escapeHtml(g.titleId) + '</span>' +
+	        '<span class="chip ltr-token">' + escapeHtml(g.titleId) + '</span>' +
 	        storageChip(g) +
-	        '<span class="chip">' + escapeHtml(g.sourceKind) + '</span>' +
+	        '<span class="chip">' + escapeHtml(sourceKindLabel(g.sourceKind)) + '</span>' +
 	        instanceRoleChip(g) +
 	        locationCountChip(g) +
 	        detailMountStateChip(g) +
@@ -6184,10 +6787,11 @@
         '<div class="primary-area">' + renderPrimary(g) + '</div>' +
         '<div class="path-box">' +
         '<div class="path-row' + (hasPathAction ? ' has-remount' : '') + '">' +
-        '<div class="path-line" title="' + escapeHtml(g.sourcePath || '-') + '">' + escapeHtml(g.sourcePath || '-') + '</div>' +
+        '<div class="path-line" title="' + escapeHtml(g.sourcePath || '-') + '"><bdi class="ltr-token">' +
+        escapeHtml(g.sourcePath || '-') + '</bdi></div>' +
         remountButton +
         readSpeedButton +
-        '<button class="copy-path" id="copy-path" aria-label="Copy path">' + icon('copy') + '</button>' +
+        '<button class="copy-path" id="copy-path" aria-label="' + escapeHtml(t('accessibility.copyPath')) + '">' + icon('copy') + '</button>' +
         '</div>' +
         '</div>' +
         '</div>';
@@ -6213,7 +6817,7 @@
       const body = $('history-body');
       const rows = currentHistoryRows();
       if (!rows.length) {
-        body.innerHTML = '<div class="empty">No operations</div>';
+        body.innerHTML = '<div class="empty">' + escapeHtml(t('history.none')) + '</div>';
         return;
       }
 	      body.innerHTML = rows.map((op) => {
@@ -6225,7 +6829,7 @@
 	        const result = formatByteText(historyResultLabel(op, jobForOperation(op)));
 	        const chips =
 	          '<div class="history-chips"><span class="chip ' + chipClass + '">' +
-	          escapeHtml(smallLabel(op.status)) + '</span>' +
+	          escapeHtml(smallLabel(operationStatusLabel(op.status))) + '</span>' +
 	          aprIndexedChip(op) +
 	          '</div>';
 	        const repairMeta = repairText && result !== repairText ?
@@ -6240,11 +6844,12 @@
 	        )).join('');
         const retryAction = operationCanRetrySkipSpaceCheck(op)
           ? '<div class="history-meta"><button class="small-action" type="button" data-skip-space-retry="' +
-            escapeHtml(op.id || '') + '">Continue anyway</button></div>'
+            escapeHtml(op.id || '') + '">' + escapeHtml(t('common.continueAnyway')) + '</button></div>'
           : '';
 	        return '<div class="history-row">' +
-	          '<div><div class="history-title">' + escapeHtml(op.displayName || op.titleId) + '</div>' +
-	          '<div class="history-meta">' + escapeHtml(op.action) + ' - ' + escapeHtml(result) + '</div>' +
+	          '<div><div class="history-title"><bdi class="auto-token">' +
+	          escapeHtml(op.displayName || op.titleId) + '</bdi></div>' +
+	          '<div class="history-meta">' + escapeHtml(operationActionLabel(op.action)) + ' - ' + escapeHtml(result) + '</div>' +
 	          metaRows +
 	          repairMeta +
 	          (op.error ? '<div class="history-meta danger-text">' + escapeHtml(formatByteText(op.error)) + '</div>' : '') +
@@ -6262,10 +6867,15 @@
       const freeGame = headerFreeSpaceGame(g);
       const freeBytes = freeGame ? Number(freeGame.freeBytes) : NaN;
       if (label) {
-        label.innerHTML = escapeHtml(headerFreeSpaceLabel(freeGame)) +
-          ' <span>' + escapeHtml(Number.isFinite(freeBytes) ? shortSize(freeBytes) : '--') + '</span>';
+        label.innerHTML = '<span class="free-space-name">' +
+          escapeHtml(headerFreeSpaceLabel(freeGame)) + '</span>' +
+          '<span class="free-space-value">' +
+          escapeHtml(Number.isFinite(freeBytes) ? shortSize(freeBytes) : '--') + '</span>';
         label.title = freeGame && freeGame.outputPath
-          ? headerFreeSpaceLabel(freeGame) + ' for ' + freeGame.outputPath
+          ? t('header.freeForPath', {
+            label: headerFreeSpaceLabel(freeGame),
+            path: isolateLtr(freeGame.outputPath)
+          })
           : headerFreeSpaceLabel(freeGame);
       }
     }
@@ -6348,7 +6958,7 @@
       }
 	      const visual = g && g.activeOp
 	        ? operationVisual(g.activeOp, job)
-	        : { label: 'Running', className: 'run' };
+	        : { label: t('status.running'), className: 'run' };
 	      const progress = operationProgressTiming(job, visual, g && g.activeOp, g);
 	      const scanProgress = operationProgressInfoForVisual(visual, job, g && g.activeOp, g);
 	      const displayPercent = scanProgress && scanProgress.countable
@@ -6531,7 +7141,7 @@
       } catch (err) {
         state.gamesLoading = false;
         state.gamesLoaded = true;
-        state.gamesError = err.message || 'Could not scan games';
+        state.gamesError = err.message || t('error.scanGames');
         state.renderKeys.header = '';
         state.renderKeys.list = '';
         state.renderKeys.detail = '';
@@ -6599,19 +7209,21 @@
 
     function moveTargetInternalRowHtml() {
       return '<button class="usb-row" data-target="internal">' +
-        '<div><div class="history-title">Internal SSD</div>' +
-        '<div class="history-meta">/data/homebrew</div></div>' +
-        '<span class="chip">Select</span>' +
+        '<div><div class="history-title">' + escapeHtml(t('storage.internalSsd')) + '</div>' +
+        '<div class="history-meta ltr-token">/data/homebrew</div></div>' +
+        '<span class="chip">' + escapeHtml(t('common.select')) + '</span>' +
         '</button>';
     }
 
     function moveTargetUsbRowHtml(usb) {
       return '<button class="usb-row" data-target="usb" data-id="' + escapeHtml(usb.id) + '">' +
         '<div><div class="history-title">' + escapeHtml(usbTargetLabel(usb)) + '</div>' +
-        '<div class="history-meta">' + escapeHtml(usb.targetRoot || usb.path) + '</div>' +
-        '<div class="history-meta">' + shortSize(usb.freeBytes) + ' free of ' +
-        shortSize(usb.totalBytes) + '</div></div>' +
-        '<span class="chip">Select</span>' +
+        '<div class="history-meta ltr-token">' + escapeHtml(usb.targetRoot || usb.path) + '</div>' +
+        '<div class="history-meta">' + escapeHtml(t('storage.freeOf', {
+          free: isolateLtr(shortSize(usb.freeBytes)),
+          total: isolateLtr(shortSize(usb.totalBytes))
+        })) + '</div></div>' +
+        '<span class="chip">' + escapeHtml(t('common.select')) + '</span>' +
         '</button>';
     }
 
@@ -6619,6 +7231,12 @@
       const body = $('usb-body');
       const copyMode = state.moveMode === 'copy';
       const g = state.moveGame;
+      if (g) {
+        $('usb-title').textContent = t(
+          copyMode ? 'storage.copyTitle' : 'storage.moveTitle',
+          { game: isolateAuto(g.name || g.titleId) }
+        );
+      }
       const usbTargets = g
         ? state.usb.filter((usb) => !pathUnderRoot(g.sourcePath, usb.path))
         : state.usb;
@@ -6628,7 +7246,7 @@
       }
       usbTargets.forEach((usb) => rows.push(moveTargetUsbRowHtml(usb)));
       if (!rows.length) {
-        body.innerHTML = '<div class="empty">No available storage target</div>';
+        body.innerHTML = '<div class="empty">' + escapeHtml(t('storage.noTarget')) + '</div>';
         return;
       }
       body.innerHTML = rows.join('');
@@ -6675,9 +7293,9 @@
 
 	    function usbTargetLabel(usb) {
 	      if (!usb) return '';
-	      const name = String(usb.name || 'USB');
+      const name = String(usb.name || t('storage.usb'));
 	      const target = String(usb.targetRoot || usb.path || '');
-	      return target ? name + ' (' + target + ')' : name;
+	      return target ? name + ' (' + isolateLtr(target) + ')' : name;
 	    }
 
 	    function usbPickerOptionHtml(usb, attrName, selectedId) {
@@ -6685,11 +7303,13 @@
 	      return '<button class="usb-picker-option' + (selected ? ' is-selected' : '') +
 	        '" type="button" ' + attrName + '="' + escapeHtml(usb.id) + '">' +
 	        '<div><div class="history-title">' + escapeHtml(usb.name) + '</div>' +
-	        '<div class="history-meta">' + escapeHtml(usb.targetRoot || usb.path) + '</div>' +
-	        '<div class="history-meta">' + shortSize(usb.freeBytes) + ' free of ' +
-	        shortSize(usb.totalBytes) + '</div></div>' +
+	        '<div class="history-meta ltr-token">' + escapeHtml(usb.targetRoot || usb.path) + '</div>' +
+        '<div class="history-meta">' + escapeHtml(t('storage.freeOf', {
+          free: isolateLtr(shortSize(usb.freeBytes)),
+          total: isolateLtr(shortSize(usb.totalBytes))
+        })) + '</div></div>' +
         '<span class="chip' + (selected ? ' selected' : '') + '">' +
-        (selected ? 'Selected' : 'Select') + '</span>' +
+        escapeHtml(selected ? t('common.selected') : t('common.select')) + '</span>' +
         '</button>';
     }
 
@@ -6697,10 +7317,12 @@
 	      return '<button class="usb-picker-trigger" type="button" ' + attrName +
 	        ' aria-haspopup="listbox" aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
 	        '<div><div class="history-title">' + escapeHtml(usb.name) + '</div>' +
-	        '<div class="history-meta">' + escapeHtml(usb.targetRoot || usb.path) + '</div>' +
-	        '<div class="history-meta">' + shortSize(usb.freeBytes) + ' free of ' +
-	        shortSize(usb.totalBytes) + '</div></div>' +
-        '<span class="chip">' + (expanded ? 'Close' : 'Change') + '</span>' +
+	        '<div class="history-meta ltr-token">' + escapeHtml(usb.targetRoot || usb.path) + '</div>' +
+        '<div class="history-meta">' + escapeHtml(t('storage.freeOf', {
+          free: isolateLtr(shortSize(usb.freeBytes)),
+          total: isolateLtr(shortSize(usb.totalBytes))
+        })) + '</div></div>' +
+        '<span class="chip">' + escapeHtml(expanded ? t('common.close') : t('common.change')) + '</span>' +
         '</button>';
     }
 
@@ -6708,10 +7330,10 @@
       return '<button class="usb-picker-option' + (selected ? ' is-selected' : '') +
         '" type="button" ' + attrName + '="' + escapeHtml(value) + '">' +
         '<div><div class="history-title">' + escapeHtml(title) + '</div>' +
-        '<div class="history-meta">' + escapeHtml(meta) + '</div>' +
+        '<div class="history-meta ltr-token">' + escapeHtml(meta) + '</div>' +
         (detail ? '<div class="history-meta">' + escapeHtml(detail) + '</div>' : '') +
         '</div><span class="chip' + (selected ? ' selected' : '') + '">' +
-        (selected ? 'Selected' : 'Select') + '</span></button>';
+        escapeHtml(selected ? t('common.selected') : t('common.select')) + '</span></button>';
     }
 
     function renderCompressDestinationChooser() {
@@ -6721,20 +7343,20 @@
       const makeImage = state.compressAction === 'make-image';
       if (!picker || !meta) return;
       if (state.compressUsbLoading) {
-        picker.innerHTML = '<div class="usb-picker-empty">Loading storage targets</div>';
+        picker.innerHTML = '<div class="usb-picker-empty">' + escapeHtml(t('loading.storageTargets')) + '</div>';
         meta.textContent = '';
         return;
       }
       const targets = alternateCompressUsbTargets(g);
       if (!targets.length) {
-        picker.innerHTML = '<div class="usb-picker-empty">No other USB with 10 MB free</div>';
-        meta.textContent = 'Connect another USB target with at least 10 MB free';
+        picker.innerHTML = '<div class="usb-picker-empty">' + escapeHtml(t('storage.noOtherUsb')) + '</div>';
+        meta.textContent = t('storage.connectOtherUsb');
         return;
       }
       const internalSelected = state.compressDestination === 'internal';
       picker.innerHTML =
         compressDestinationChoiceHtml(
-          'Internal SSD',
+          t('storage.internalSsd'),
           '/data/homebrew',
           '',
           internalSelected,
@@ -6742,9 +7364,12 @@
           'internal'
         ) +
         targets.map((usb) => compressDestinationChoiceHtml(
-          usb.name || 'USB',
+          usb.name || t('storage.usb'),
           usb.targetRoot || usb.path || '',
-          shortSize(usb.freeBytes) + ' free of ' + shortSize(usb.totalBytes),
+          t('storage.freeOf', {
+            free: isolateLtr(shortSize(usb.freeBytes)),
+            total: isolateLtr(shortSize(usb.totalBytes))
+          }),
           state.compressDestination === 'usb' && state.compressUsbId === usb.id,
           'data-compress-usb-choice',
           usb.id || ''
@@ -6767,14 +7392,14 @@
       if (state.compressDestination === 'usb') {
         const usb = selectedCompressUsb();
         meta.textContent = usb
-          ? (makeImage ? 'Image target: ' : 'Compression target: ') + usbTargetLabel(usb)
+          ? t(makeImage ? 'storage.imageTarget' : 'storage.compressionTarget', { target: usbTargetLabel(usb) })
           : '';
       } else if (state.compressDestination === 'internal') {
         meta.textContent = makeImage
-          ? 'Image target: Internal SSD'
-          : 'Compression target: Internal SSD';
+          ? t('storage.imageTarget', { target: t('storage.internalSsd') })
+          : t('storage.compressionTarget', { target: t('storage.internalSsd') });
       } else {
-        meta.textContent = 'Choose Internal SSD or another USB target';
+        meta.textContent = t('storage.chooseInternalOrUsb');
       }
     }
 
@@ -6783,15 +7408,15 @@
       const meta = $('compress-usb-meta');
       if (!picker || !meta) return;
       if (state.compressUsbLoading) {
-        picker.innerHTML = '<div class="usb-picker-empty">Loading external storage</div>';
+        picker.innerHTML = '<div class="usb-picker-empty">' + escapeHtml(t('loading.externalStorage')) + '</div>';
         meta.textContent = '';
         return;
       }
       if (!state.usb.length) {
         state.compressUsbId = '';
         state.compressUsbOpen = false;
-        picker.innerHTML = '<div class="usb-picker-empty">No external storage with 10 MB free</div>';
-        meta.textContent = 'Connect external storage with at least 10 MB free';
+        picker.innerHTML = '<div class="usb-picker-empty">' + escapeHtml(t('storage.noExternal')) + '</div>';
+        meta.textContent = t('storage.connectExternal');
         return;
       }
       if (!state.compressUsbId || !selectedCompressUsb()) {
@@ -6821,7 +7446,10 @@
         });
       });
 	      meta.textContent = usb
-	        ? usbTargetLabel(usb) + ' - ' + shortSize(usb.freeBytes) + ' free of ' + shortSize(usb.totalBytes)
+	        ? usbTargetLabel(usb) + ' - ' + t('storage.freeOf', {
+	          free: isolateLtr(shortSize(usb.freeBytes)),
+	          total: isolateLtr(shortSize(usb.totalBytes))
+	        })
 	        : '';
     }
 
@@ -6840,15 +7468,15 @@
       const meta = $('uncompress-usb-meta');
       if (!picker || !meta) return;
       if (state.uncompressUsbLoading) {
-        picker.innerHTML = '<div class="usb-picker-empty">Loading external storage</div>';
+        picker.innerHTML = '<div class="usb-picker-empty">' + escapeHtml(t('loading.externalStorage')) + '</div>';
         meta.textContent = '';
         return;
       }
       if (!state.usb.length) {
         state.uncompressUsbId = '';
         state.uncompressUsbOpen = false;
-        picker.innerHTML = '<div class="usb-picker-empty">No external storage with 10 MB free</div>';
-        meta.textContent = 'Connect external storage with at least 10 MB free';
+        picker.innerHTML = '<div class="usb-picker-empty">' + escapeHtml(t('storage.noExternal')) + '</div>';
+        meta.textContent = t('storage.connectExternal');
         return;
       }
       if (!state.uncompressUsbId || !selectedUncompressUsb()) {
@@ -6878,15 +7506,18 @@
         });
       });
 	      meta.textContent = usb
-	        ? usbTargetLabel(usb) + ' - ' + shortSize(usb.freeBytes) + ' free of ' + shortSize(usb.totalBytes)
+	        ? usbTargetLabel(usb) + ' - ' + t('storage.freeOf', {
+	          free: isolateLtr(shortSize(usb.freeBytes)),
+	          total: isolateLtr(shortSize(usb.totalBytes))
+	        })
 	        : '';
     }
 
     function uncompressImageLabel(plan) {
       const type = String((plan && plan.nestedType) || '').toLowerCase();
-      if (type === 'exfat') return 'exFAT image';
-      if (type === 'pfs') return 'PFS image';
-      return 'Image';
+      if (type === 'exfat') return t('uncompress.exfatImage');
+      if (type === 'pfs') return t('uncompress.pfsImage');
+      return t('common.image');
     }
 
     function defaultUncompressDeletePolicyForDestination(destination) {
@@ -6902,6 +7533,11 @@
     function updateUncompressModalSelection() {
       const g = state.uncompressGame;
       const plan = state.uncompressPlan || {};
+      if (g) {
+        $('uncompress-title').textContent = t('uncompress.dialogGame', {
+          game: isolateAuto(g.name || g.titleId)
+        });
+      }
       const sourceStorage = String(plan.sourceStorage || (g && g.storage) || '').toLowerCase();
       const showInternal = sourceStorage !== 'internal';
       const showUsb = sourceStorage !== 'usb';
@@ -6918,15 +7554,17 @@
       const movingToUsb = state.uncompressDestination === 'usb';
       $('uncompress-files-name').textContent = plan.filesOutputPath
         ? basenameFromPath(plan.filesOutputPath)
-        : 'App folder';
+        : t('uncompress.appFolder');
+      $('uncompress-files-name').classList.toggle('ltr-token', !!plan.filesOutputPath);
       $('uncompress-image-title').textContent = uncompressImageLabel(plan);
       $('uncompress-image-name').textContent = plan.imageOutputPath
         ? basenameFromPath(plan.imageOutputPath)
         : (state.uncompressPlanError ||
-          (state.uncompressPlanLoading ? 'Detecting image type' : 'Image output'));
+          (state.uncompressPlanLoading ? t('uncompress.detectingImage') : t('uncompress.imageOutput')));
+      $('uncompress-image-name').classList.toggle('ltr-token', !!plan.imageOutputPath);
       $('uncompress-inplace-meta').textContent = state.uncompressDeletePolicy === 'keep'
-        ? 'Write next to the compressed image and keep the compressed source'
-        : 'Write next to the compressed image and remove it after output is ready';
+        ? t('uncompress.writeAndKeep')
+        : t('uncompress.writeAndRemove');
       $('uncompress-internal-row').classList.toggle('is-hidden', !showInternal);
       $('uncompress-usb-row').classList.toggle('is-hidden', !showUsb);
       $('uncompress-usb-panel').classList.toggle('hidden', !movingToUsb);
@@ -6952,7 +7590,9 @@
         button.classList.toggle('is-selected', selected && !disabled);
         const chip = button.querySelector('.chip');
         if (chip) {
-          chip.textContent = disabled ? 'Unavailable' : (selected ? 'Selected' : 'Select');
+          chip.textContent = disabled
+            ? t('common.unavailable')
+            : (selected ? t('common.selected') : t('common.select'));
           chip.classList.toggle('selected', selected && !disabled);
           chip.classList.toggle('bad', disabled);
         }
@@ -6977,7 +7617,6 @@
       state.uncompressUsbId = '';
       state.uncompressUsbLoading = true;
       state.uncompressUsbOpen = false;
-      $('uncompress-title').textContent = 'Uncompress ' + (g.name || g.titleId);
       updateUncompressModalSelection();
       showModal('uncompress-modal');
       Promise.all([
@@ -7025,10 +7664,10 @@
 
     function deleteSourceLabel(g) {
       const kind = String((g && g.sourceKind) || '').toLowerCase();
-      if (kind === 'compressed') return 'compressed image';
-      if (kind === 'image') return 'image file';
-      if (kind === 'folder') return 'game folder';
-      return 'game data';
+      if (kind === 'compressed') return t('delete.source.compressed');
+      if (kind === 'image') return t('delete.source.image');
+      if (kind === 'folder') return t('delete.source.folder');
+      return t('delete.source.gameData');
     }
 
     function updateDeleteModal() {
@@ -7037,11 +7676,13 @@
       $('delete-cancel').disabled = state.deleteBusy;
       $('delete-close').disabled = state.deleteBusy;
       if (!g) return;
-      $('delete-title').textContent = 'Delete ' + (g.name || g.titleId);
-      $('delete-game-name').textContent = g.name || g.titleId || 'Game data';
-      $('delete-warning-text').textContent =
-        'This permanently deletes the selected ' + deleteSourceLabel(g) +
-        ' from storage. This cannot be undone.';
+      $('delete-title').textContent = t('delete.dialogGame', {
+        game: isolateAuto(g.name || g.titleId)
+      });
+      $('delete-game-name').textContent = g.name || g.titleId || t('delete.gameData');
+      $('delete-warning-text').textContent = t('delete.warningSource', {
+        source: deleteSourceLabel(g)
+      });
       $('delete-game-path').textContent = g.sourcePath || '';
     }
 
@@ -7083,10 +7724,11 @@
       if (!g || !g.sourcePath) return;
       state.moveGame = g;
       state.moveMode = mode === 'copy' ? 'copy' : 'move';
-      $('usb-title').textContent =
-        (state.moveMode === 'copy' ? 'Copy ' : 'Move ') +
-        (g.name || g.titleId) + ' to...';
-      $('usb-body').innerHTML = '<div class="empty">Loading storage targets</div>';
+      $('usb-title').textContent = t(
+        state.moveMode === 'copy' ? 'storage.copyTitle' : 'storage.moveTitle',
+        { game: g.name || g.titleId }
+      );
+      $('usb-body').innerHTML = '<div class="empty">' + escapeHtml(t('loading.storageTargets')) + '</div>';
       showModal('usb-modal');
       try {
         const data = await api('/api/gc/usb');
@@ -7118,42 +7760,47 @@
     }
 
     function safeSpaceText(g) {
-      if (state.compressSourcePolicy === 'keep') {
-        return 'Original remains untouched';
-      }
       if (state.compressDestination === 'usb') {
         const usb = selectedCompressUsb();
-        if (usb) return 'Requires target free space; deletes after verification';
-        return 'Requires target free space; deletes after verification';
+        if (usb) return t('compress.safe.target');
+        return t('compress.safe.target');
       }
       if (state.compressDestination === 'internal') {
-        return 'Requires SSD free space; deletes after verification';
+        return t('compress.safe.ssd');
       }
       const requiredBytes = Number((g && g.requiredBytes) || 0) ||
         Number((g && g.sourceSize) || 0);
       if (!g || !requiredBytes) {
-        return 'Measuring required free space';
+        return t('compress.safe.measuring');
       }
       const freeBytes = Number(g.freeBytes || 0);
       const extra = Number(g.extraBytes || 0) ||
         (freeBytes > 0 && requiredBytes > freeBytes ? requiredBytes - freeBytes : 0);
       const required = modalSizeText(requiredBytes);
       return extra > 0
-        ? 'Requires ' + required + ' free; ' + modalSizeText(extra) + ' short'
-        : 'Requires ' + required + ' free; deletes after verification';
+        ? t('compress.safe.short', {
+          required: isolateLtr(required),
+          extra: isolateLtr(modalSizeText(extra))
+        })
+        : t('compress.safe.ready', { required: isolateLtr(required) });
     }
 
     function destructiveSpaceText(g) {
       if (state.compressDestination === 'usb' ||
         state.compressDestination === 'internal') {
-        return 'Requires same storage';
+        return t('compress.destructive.sameStorage');
       }
       const minFree = Number((g && g.streamMinFreeBytes) || 1073741824);
-      if (!g || !g.canStreamDelete) return 'Requires folder source';
+      if (!g || !g.canStreamDelete) return t('compress.destructive.folderOnly');
       const extra = Number(g.streamExtraBytes || 0);
-      const base = 'Requires ' + modalSizeText(minFree) + ' free; deletes while writing';
+      const base = t('compress.destructive.base', {
+        required: isolateLtr(modalSizeText(minFree))
+      });
       return extra > 0
-        ? base + '; ' + modalSizeText(extra) + ' short'
+        ? t('compress.destructive.short', {
+          base,
+          extra: isolateLtr(modalSizeText(extra))
+        })
         : base;
     }
 
@@ -7170,6 +7817,31 @@
     function updateCompressModalSelection() {
       const g = state.compressGame;
       const makeImage = state.compressAction === 'make-image';
+      if (g) {
+        $('format-title').textContent = t(
+          makeImage ? 'compress.makeImageGame' : 'compress.dialogGame',
+          { game: isolateAuto(g.name || g.titleId) }
+        );
+        $('format-compress-output-name').textContent =
+          (g.titleId || '<TITLE_ID>') + '.ffpfsc';
+        $('format-exfat-title').textContent = makeImage
+          ? t('compress.exfatImage')
+          : t('compress.exfatInside');
+        $('format-exfat-name').textContent = makeImage
+          ? (g.titleId || '<TITLE_ID>') + '.exfat'
+          : t('compress.createsExfat', { titleId: isolateLtr(g.titleId || '<TITLE_ID>') });
+        $('format-exfat-name').classList.toggle('ltr-token', makeImage);
+        $('format-pfs-title').textContent = makeImage
+          ? t('compress.pfsImageExperimental')
+          : t('compress.pfsInsideExperimental');
+        $('format-pfs-name').textContent = makeImage
+          ? (g.titleId || '<TITLE_ID>') + '.ffpfs'
+          : t('compress.createsPfs', { titleId: isolateLtr(g.titleId || '<TITLE_ID>') });
+        $('format-pfs-name').classList.toggle('ltr-token', makeImage);
+        $('format-start').textContent = makeImage
+          ? t('operation.action.makeImage')
+          : t('operation.action.compress');
+      }
       const sourceStorage = String((g && g.storage) || '').toLowerCase();
       const showInternal = sourceStorage !== 'internal';
       const useDestinationChooser = showInternal && hasAlternateCompressUsbTargets(g);
@@ -7199,33 +7871,35 @@
       if (!useDestinationChooser && state.compressDestination !== 'usb') {
         state.compressDestinationChooserOpen = false;
       }
-      $('format-output-section').textContent = 'Output';
+      $('format-output-section').textContent = t('common.output');
       $('format-output-section').classList.toggle('is-hidden', makeImage);
-      $('format-inner-section').textContent = makeImage ? 'Image Format' : 'Inner Image Format';
+      $('format-inner-section').textContent = makeImage
+        ? t('compress.imageFormatTitle')
+        : t('compress.innerImageFormatTitle');
       $('format-compress-output').classList.toggle('is-hidden', makeImage);
       $('format-make-image-hint').classList.toggle('is-hidden', makeImage);
       $('format-safe-space').textContent = safeSpaceText(g);
-      $('format-stream-space').textContent = makeImage ? 'Not available for image creation' : destructiveSpaceText(g);
+      $('format-stream-space').textContent = makeImage ? t('compress.notForImage') : destructiveSpaceText(g);
       $('format-destination-keep-title').textContent = makeImage
-        ? 'Make image in place'
-        : 'Compress in place';
+        ? t('compress.makeImageInPlace')
+        : t('compress.inPlace');
       $('format-destination-keep').textContent = makeImage
-        ? 'Write image next to the current game'
-        : 'Write next to the current game';
+        ? t('compress.writeImageCurrent')
+        : t('compress.writeCurrent');
       $('format-destination-internal-title').textContent = useDestinationChooser
-        ? (makeImage ? 'Make image to...' : 'Compress to...')
-        : 'Internal SSD';
+        ? (makeImage ? t('compress.makeImageTo') : t('compress.compressTo'))
+        : t('storage.internalSsd');
 	      $('format-destination-internal').textContent = useDestinationChooser
-          ? 'Choose Internal SSD or another USB'
+          ? t('storage.chooseInternalOrUsb')
           : (makeImage
-	          ? 'Write image to /data/homebrew'
-	          : 'Write compressed file to /data/homebrew');
+	          ? t('compress.writeImageInternal')
+	          : t('compress.writeInternal'));
       $('format-destination-usb-title').textContent = makeImage
-        ? 'Make image to external storage'
-        : 'External Storage';
+        ? t('compress.makeImageExternal')
+        : t('storage.externalStorage');
       $('format-destination-usb').textContent = makeImage
-        ? 'Write image to the USB target below'
-        : 'Write compressed file to the USB target below';
+        ? t('compress.writeImageUsb')
+        : t('compress.writeUsb');
       $('compress-usb-panel').classList.toggle('hidden',
         useDestinationChooser
           ? !state.compressDestinationChooserOpen
@@ -7262,7 +7936,9 @@
         button.classList.toggle('is-selected', selected && !disabled);
         const chip = button.querySelector('.chip');
         if (chip) {
-          chip.textContent = disabled ? 'Unavailable' : (selected ? 'Selected' : 'Select');
+          chip.textContent = disabled
+            ? t('common.unavailable')
+            : (selected ? t('common.selected') : t('common.select'));
           chip.classList.toggle('selected', selected && !disabled);
           chip.classList.toggle('bad', disabled);
         }
@@ -7284,22 +7960,6 @@
       state.compressUsbLoading = false;
       state.compressUsbOpen = false;
       state.compressDestinationChooserOpen = false;
-      $('format-title').textContent = (makeImage ? 'Make Image ' : 'Compress ') + (g.name || g.titleId);
-      $('format-compress-output-name').textContent =
-        (g.titleId || '<TITLE_ID>') + '.ffpfsc';
-      $('format-exfat-title').textContent = makeImage
-        ? 'exFAT image'
-        : 'exFAT inside .ffpfsc';
-      $('format-exfat-name').textContent = makeImage
-        ? (g.titleId || '<TITLE_ID>') + '.exfat'
-        : 'Creates ' + (g.titleId || '<TITLE_ID>') + '.ffpfsc with internal exFAT';
-      $('format-pfs-title').textContent = makeImage
-        ? 'PFS image experimental'
-        : 'PFS inside .ffpfsc experimental';
-      $('format-pfs-name').textContent = makeImage
-        ? (g.titleId || '<TITLE_ID>') + '.ffpfs'
-        : 'Creates ' + (g.titleId || '<TITLE_ID>') + '.ffpfsc with pfs_image.dat';
-      $('format-start').textContent = makeImage ? 'Make Image' : 'Compress';
       updateCompressModalSelection();
       showModal('format-modal');
       state.compressUsbLoading = true;
@@ -7348,7 +8008,7 @@
       } catch (err) {
         const data = err.data || {};
         if (data.lowSpace) {
-          alert('Not enough free storage.\n\nFree ' + shortSize(data.extraBytes || 0) + ' more on the target storage.');
+          alert(t('error.lowSpace', { extra: isolateLtr(shortSize(data.extraBytes || 0)) }));
         } else {
           alert(formatByteText(err.message));
         }
@@ -7431,7 +8091,7 @@
       } catch (err) {
         const data = err.data || {};
         if (data.lowSpace) {
-          alert('Not enough free storage.\n\nFree ' + shortSize(data.extraBytes || 0) + ' more on the target storage.');
+          alert(t('error.lowSpace', { extra: isolateLtr(shortSize(data.extraBytes || 0)) }));
         } else {
           alert(formatByteText(err.message));
         }
@@ -7481,29 +8141,36 @@
         const data = err.data || {};
         if (data.lowSpace) {
           const requested = deletePolicy || data.requestedDeletePolicy || '';
-          const noun = action === 'make-image' ? 'image creation' : 'compression';
+          const noun = t(action === 'make-image' ? 'error.imageCreation' : 'error.compression');
           if (requested === 'stream') {
             const minFree = modalSizeText(data.streamMinFreeBytes || 1073741824);
             const extra = modalSizeText(data.streamExtraBytes || 0);
-            alert('Not enough free storage for destructive compression.\n\nDestructive deletes the source while writing and cannot be cancelled after it starts. It requires ' + minFree + ' free. Free ' + extra + ' more on the target storage.');
+            alert(t('error.lowSpaceDestructive', {
+              required: isolateLtr(minFree),
+              extra: isolateLtr(extra)
+            }));
             return;
           }
           if (requested === 'after') {
             const required = modalSizeText(data.requiredBytes || 0);
             const extra = modalSizeText(data.extraBytes || 0);
-            alert('Not enough free storage for safe ' + noun + '.\n\nSafe keeps the original until the new file is complete and verified. It requires ' + required + ' free. Free ' + extra + ' more on the target storage.');
+            alert(t('error.lowSpaceSafe', {
+              operation: noun,
+              required: isolateLtr(required),
+              extra: isolateLtr(extra)
+            }));
             return;
           }
           const extra = shortSize(data.extraBytes || 0);
-          const base = 'Free ' + extra + ' more to keep the original untouched until the new file is complete.';
+          const base = t('error.keepOriginalNeeds', { extra: isolateLtr(extra) });
           if (data.canStreamDelete) {
-            const msg = 'Not enough free storage for the safer path.\n\nDelete while processing can damage the original source if the operation stops.\n\n' + base;
+            const msg = t('error.saferPathConfirm', { detail: base });
             if (confirm(msg)) {
               await startAction(g, true, overrideAction, compressFormat, deletePolicy, usbId, compressionDestination);
               return;
             }
           } else {
-            alert('Not enough free storage.\n\n' + base);
+            alert(t('error.lowSpaceDetail', { detail: base }));
           }
         } else {
           alert(formatByteText(err.message));
@@ -7519,7 +8186,7 @@
     async function cancelActiveJob(activeId) {
       const id = activeId || String((state.job && state.job.activeId) || '');
       if (state.job && state.job.cancelDisabled) {
-        alert(formatByteText(state.job.cancelDisabledReason || 'Operation cannot be cancelled now'));
+        alert(formatByteText(state.job.cancelDisabledReason || t('operation.cancelUnavailable')));
         return;
       }
       if (id) {
@@ -7573,7 +8240,7 @@
       const btn = $('terminate-top');
       if (btn) {
         btn.disabled = true;
-        btn.title = 'Game Compressor terminated';
+        btn.title = t('terminate.terminated');
         btn.classList.remove('is-terminate-needed');
       }
       const app = document.querySelector('.app');
@@ -7582,19 +8249,19 @@
       app.innerHTML =
         '<div class="terminated-screen" role="status" aria-live="assertive">' +
         '<div class="terminated-icon" aria-hidden="true">' + icon('power') + '</div>' +
-        '<h2 class="terminated-title">Game Compressor terminated</h2>' +
-        '<p class="terminated-copy">Exit this window and enjoy playing your games.</p>' +
+        '<h2 class="terminated-title">' + escapeHtml(t('terminate.terminated')) + '</h2>' +
+        '<p class="terminated-copy">' + escapeHtml(t('terminate.exitMessage')) + '</p>' +
         '</div>';
     }
 
     async function terminateProgram() {
       const btn = $('terminate-top');
-      if (!confirm('Terminate Game Compressor now?\n\nRecommended before playing games because leaving it running can have minor effects on game performance.')) {
+      if (!confirm(t('terminate.confirm'))) {
         return;
       }
       if (btn) {
         btn.disabled = true;
-        btn.title = 'Terminating Game Compressor';
+        btn.title = t('terminate.terminating');
       }
       requestShutdownAfterTerminate();
       showTerminatedScreen();
@@ -7606,6 +8273,7 @@
       $('theme-light').innerHTML = icon('sun');
       $('theme-dark').innerHTML = icon('moon');
       $('info-top').innerHTML = icon('info');
+      $('language-top').innerHTML = icon('language');
       $('history-top').innerHTML = icon('history');
       $('terminate-top').innerHTML = icon('power');
       $('info-close').innerHTML = icon('close');
@@ -7615,9 +8283,35 @@
       $('format-close').innerHTML = icon('close');
       $('uncompress-close').innerHTML = icon('close');
       $('delete-close').innerHTML = icon('close');
+      document.querySelectorAll('.language-check').forEach((check) => {
+        check.innerHTML = icon('check');
+      });
 
       $('theme-light').addEventListener('click', () => setUiTheme('light'));
       $('theme-dark').addEventListener('click', () => setUiTheme('dark'));
+      $('language-top').addEventListener('click', toggleLanguageMenu);
+      document.querySelectorAll('[data-language-value]').forEach((option) => {
+        option.addEventListener('click', () => {
+          setUiLocale(option.getAttribute('data-language-value') || SYSTEM_LANGUAGE_PREFERENCE, true);
+        });
+      });
+      $('language-menu').addEventListener('keydown', (event) => {
+        if (event.key === 'Tab') {
+          closeLanguageMenu(true);
+          return;
+        }
+        if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' &&
+          event.key !== 'Home' && event.key !== 'End') return;
+        const options = Array.from(document.querySelectorAll('.language-option'));
+        if (!options.length) return;
+        let index = options.indexOf(document.activeElement);
+        if (event.key === 'Home') index = 0;
+        else if (event.key === 'End') index = options.length - 1;
+        else if (event.key === 'ArrowUp') index = index <= 0 ? options.length - 1 : index - 1;
+        else index = index < 0 || index >= options.length - 1 ? 0 : index + 1;
+        event.preventDefault();
+        options[index].focus();
+      });
       $('info-top').addEventListener('click', () => showModal('info-modal'));
       $('info-close').addEventListener('click', () => hideModal('info-modal'));
       $('history-top').addEventListener('click', () => showModal('history-modal'));
@@ -7729,6 +8423,9 @@
       });
       document.addEventListener('click', (event) => {
         hideTerminateReminder();
+        if (!event.target.closest('#language-top') && !event.target.closest('#language-menu')) {
+          closeLanguageMenu(false);
+        }
         if (state.notice && !event.target.closest('#ui-notice-layer')) {
           hideUiNotice();
         }
@@ -7745,6 +8442,7 @@
       });
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
+          if (languageMenuIsOpen()) closeLanguageMenu(true);
           closeSecondaryMenu();
           closeUncompressModal();
           closeDeleteModal();
@@ -7752,12 +8450,14 @@
       });
       window.addEventListener('resize', () => {
         if (state.secondaryMenuFor) positionSecondaryMenu();
+        if (languageMenuIsOpen()) positionLanguageMenu();
       });
       window.addEventListener('scroll', () => {
         if (state.secondaryMenuFor) positionSecondaryMenu();
+        if (languageMenuIsOpen()) positionLanguageMenu();
       }, true);
 
-      renderAppChrome();
+      refreshLocalizedUi();
       loadAppStatus();
       loadUiSettings();
       refreshAll();
