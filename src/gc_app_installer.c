@@ -34,6 +34,41 @@
 #define GC_NETCTL_PATH "/system/common/lib/libSceNetCtl.sprx"
 #define GC_NID_INSTALL_TITLE_DIR "Wudg3Xe3heE"
 
+/*
+ * Media-category (row) registration, same technique as ProsperoPlayer:
+ *   1. Build a system host at /system_ex/app/<TITLE_ID>/ using
+ *      NPXS40106's eboot.bin as the signed BigApp container.
+ *   2. Raise the process authid so AppInstUtil accepts a Media-category
+ *      registration under /system_ex/.
+ *   3. Register both the system host dir and the user tile dir.
+ *
+ * assets-app/param.json already carries applicationCategoryType: 65536
+ * (Media). Nothing else needs to change there.
+ */
+#define GC_HOST_DIR         "/system_ex/app/" GAME_COMPRESSOR_LAUNCHER_TITLE_ID
+#define GC_HOST_SCE_SYS_DIR GC_HOST_DIR "/sce_sys"
+#define GC_HOST_EBOOT_PATH  GC_HOST_DIR "/eboot.bin"
+#define GC_HOST_PARAM_PATH  GC_HOST_SCE_SYS_DIR "/param.json"
+#define GC_HOST_PARENT_DIR  "/system_ex/app/"
+
+/* Signed media host eboot.bin present on every PS5 firmware; same one
+ * ProsperoPlayer uses as its BigApp container. */
+#define GC_NPXS40106_EBOOT  "/system_ex/app/NPXS40106/eboot.bin"
+
+/* authid that lets sceAppInstUtil register an app under /system_ex/.
+ * Same value used by ProsperoPlayer's MediaLauncher. Set once per
+ * install pass; no restore needed since the launcher thread already
+ * runs with the elevated privileges granted by the jailbreak. */
+#define GC_MEDIA_AUTHID     UINT64_C(0x4801000000000013)
+
+/* Minimal host param.json: the host only needs titleId + category,
+ * the deeplinkUri/localizedParameters stay on the user tile. */
+static const char gc_host_param_json[] =
+    "{\n"
+    "    \"titleId\": \"" GAME_COMPRESSOR_LAUNCHER_TITLE_ID "\",\n"
+    "    \"applicationCategoryType\": 65536\n"
+    "}";
+
 #define INCASSET(name, file)                                                   \
   __asm__(".section .rodata\n"                                                 \
           ".global " #name "\n"                                                \
@@ -206,6 +241,80 @@ ensure_data_dir(void) {
 }
 
 static int
+copy_file_raw(const char *dst, const char *src) {
+  FILE *fsrc = fopen(src, "rb");
+  if(!fsrc) {
+    gc_log("launcher host copy: cannot open src %s errno=%d", src, errno);
+    return -1;
+  }
+
+  FILE *fdst = fopen(dst, "wb");
+  if(!fdst) {
+    gc_log("launcher host copy: cannot open dst %s errno=%d", dst, errno);
+    fclose(fsrc);
+    return -1;
+  }
+
+  char buf[65536];
+  size_t n;
+  int ok = 0;
+  while((n = fread(buf, 1, sizeof(buf), fsrc)) > 0) {
+    if(fwrite(buf, 1, n, fdst) != n) {
+      ok = -1;
+      break;
+    }
+  }
+
+  fclose(fsrc);
+  fclose(fdst);
+  return ok;
+}
+
+/*
+ * Creates /system_ex/app/<TITLE_ID>/ with a copy of NPXS40106's
+ * eboot.bin plus a minimal param.json. This BigApp container is what
+ * the PS5 shell requires before it will show a tile under the Media
+ * row; without it AppInstUtil accepts the install but the Media row
+ * ignores the entry. Non-fatal on failure: the caller falls back to a
+ * normal home-screen tile.
+ */
+static int
+setup_system_host(void) {
+  struct stat st;
+
+  if(mkdir_if_needed(GC_HOST_DIR) != 0) {
+    gc_log("launcher host mkdir %s failed errno=%d", GC_HOST_DIR, errno);
+    return -1;
+  }
+  if(mkdir_if_needed(GC_HOST_SCE_SYS_DIR) != 0) {
+    gc_log("launcher host mkdir %s failed errno=%d", GC_HOST_SCE_SYS_DIR,
+           errno);
+    return -1;
+  }
+
+  if(stat(GC_HOST_EBOOT_PATH, &st) != 0) {
+    if(stat(GC_NPXS40106_EBOOT, &st) != 0) {
+      gc_log("launcher host source eboot not found: %s", GC_NPXS40106_EBOOT);
+      return -1;
+    }
+    if(copy_file_raw(GC_HOST_EBOOT_PATH, GC_NPXS40106_EBOOT) != 0) {
+      gc_log("launcher host failed to copy eboot.bin");
+      return -1;
+    }
+    gc_log("launcher host eboot.bin installed at %s", GC_HOST_EBOOT_PATH);
+  }
+
+  if(write_file(GC_HOST_PARAM_PATH, (const uint8_t *)gc_host_param_json,
+               sizeof(gc_host_param_json) - 1) != 0) {
+    gc_log("launcher host failed writing param.json");
+    return -1;
+  }
+
+  gc_log("launcher host ready at %s", GC_HOST_DIR);
+  return 0;
+}
+
+static int
 install_app(const appinst_api_t *api, const char *title_id, const char *dir) {
   if(api->install_title_dir) {
     int err = api->install_title_dir(title_id, dir, NULL);
@@ -306,6 +415,25 @@ gc_install_app_if_needed(void) {
   uninstall_launcher_title(&api, GAME_COMPRESSOR_LAUNCHER_TITLE_ID,
                            "Game Compressor tile");
 
+  /*
+   * Raise authid once for the rest of the install sequence. Required
+   * for /system_ex/ registration and the Media category. No restore:
+   * this thread only runs once at startup and already has jailbreak
+   * privileges.
+   */
+  kernel_set_ucred_authid(getpid(), GC_MEDIA_AUTHID);
+
+  if(setup_system_host() != 0) {
+    gc_log("launcher host setup failed, tile will use generic home row");
+  } else {
+    int host_err = install_app(&api, GAME_COMPRESSOR_LAUNCHER_TITLE_ID,
+                               GC_HOST_PARENT_DIR);
+    if(host_err) {
+      gc_log("launcher install (system host) rc=0x%08x - continuing anyway",
+             (unsigned)host_err);
+    }
+  }
+
   if(mkdir_if_needed(app_dir) != 0 || mkdir_if_needed(sce_sys_dir) != 0) {
     gc_log("launcher install mkdir failed errno=%d", errno);
     gc_notify_message("Home tile setup failed", "Use web UI");
@@ -390,6 +518,12 @@ gc_launcher_remove(void) {
   unlink_if_exists(icon_path);
   rmdir_if_exists(sce_sys_dir);
   rmdir_if_exists(app_dir);
+
+  kernel_set_ucred_authid(getpid(), GC_MEDIA_AUTHID);
+  unlink_if_exists(GC_HOST_EBOOT_PATH);
+  unlink_if_exists(GC_HOST_PARAM_PATH);
+  rmdir_if_exists(GC_HOST_SCE_SYS_DIR);
+  rmdir_if_exists(GC_HOST_DIR);
 
   gc_log("launcher remove complete rc=0x%08x", (unsigned)rc);
 
